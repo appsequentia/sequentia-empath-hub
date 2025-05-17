@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { LogOut, Star } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import EditProfileDialog from "@/components/specialists/EditProfileDialog";
+import { useToast } from "@/hooks/use-toast";
 
 interface TherapistProfileData {
   name: string;
@@ -16,12 +17,14 @@ interface TherapistProfileData {
   specializations: string[];
   rating: number;
   reviews: number;
+  title: string;
 }
 
 const TherapistProfile: React.FC = () => {
   const { user, signOut } = useAuth();
   const [profileData, setProfileData] = useState<TherapistProfileData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
   
   const firstName = user?.user_metadata?.first_name || "";
   const lastName = user?.user_metadata?.last_name || "";
@@ -67,6 +70,7 @@ const TherapistProfile: React.FC = () => {
           const newProfile = {
             id: user.id,
             name: `${firstName} ${lastName}`.trim(),
+            title: "",
             bio: "",
             approach: "",
             price: 0,
@@ -85,8 +89,17 @@ const TherapistProfile: React.FC = () => {
             
           if (insertError) {
             console.error("Erro ao criar perfil:", insertError);
+            toast({
+              title: "Erro ao criar perfil",
+              description: "Não foi possível criar seu perfil. Tente novamente mais tarde.",
+              variant: "destructive"
+            });
           } else {
             setProfileData(newProfile);
+            toast({
+              title: "Perfil criado",
+              description: "Seu perfil foi criado com sucesso. Complete suas informações para aparecer na listagem pública.",
+            });
           }
         }
       } catch (error) {
@@ -97,7 +110,7 @@ const TherapistProfile: React.FC = () => {
     };
     
     fetchProfileData();
-  }, [user, firstName, lastName]);
+  }, [user, firstName, lastName, toast]);
 
   return (
     <Card className="bg-teal-800/40 backdrop-blur-sm border-lavender-400/20">
@@ -138,10 +151,17 @@ const TherapistProfile: React.FC = () => {
               <div className="flex-1">
                 <h2 className="text-white text-lg font-medium">{profileData.name}</h2>
                 <p className="text-white/70">{email}</p>
+                {profileData.title && (
+                  <p className="text-lavender-300/80 text-sm">{profileData.title}</p>
+                )}
                 
-                {profileData.price > 0 && (
+                {profileData.price > 0 ? (
                   <p className="text-lavender-300 mt-1">
                     R$ {profileData.price}/sessão
+                  </p>
+                ) : (
+                  <p className="text-white/50 mt-1 text-sm italic">
+                    Defina o valor da sessão
                   </p>
                 )}
               </div>
@@ -169,9 +189,9 @@ const TherapistProfile: React.FC = () => {
             )}
             
             {/* Especialidades */}
-            {profileData.specializations.length > 0 && (
-              <div>
-                <span className="text-white/60 text-sm block mb-2">Especialidades:</span>
+            <div>
+              <span className="text-white/60 text-sm block mb-2">Especialidades:</span>
+              {profileData.specializations.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
                   {profileData.specializations.map((specialty, index) => (
                     <span 
@@ -182,20 +202,26 @@ const TherapistProfile: React.FC = () => {
                     </span>
                   ))}
                 </div>
-              </div>
-            )}
+              ) : (
+                <p className="text-white/50 text-sm italic">Adicione suas especialidades</p>
+              )}
+            </div>
             
             {/* Bio resumida */}
-            {profileData.bio && (
-              <div>
-                <span className="text-white/60 text-sm">Biografia:</span>
+            <div>
+              <span className="text-white/60 text-sm">Biografia:</span>
+              {profileData.bio ? (
                 <p className="text-white/90 mt-1">
                   {profileData.bio.length > 100
                     ? `${profileData.bio.substring(0, 100)}...`
                     : profileData.bio}
                 </p>
-              </div>
-            )}
+              ) : (
+                <p className="text-white/50 text-sm italic mt-1">
+                  Adicione uma biografia para que seus clientes possam conhecer você melhor
+                </p>
+              )}
+            </div>
             
             {/* Botão de editar perfil */}
             <div className="pt-2">
@@ -203,6 +229,7 @@ const TherapistProfile: React.FC = () => {
                 therapistId={user?.id || ""}
                 therapistData={{
                   name: profileData.name,
+                  title: profileData.title || "",
                   bio: profileData.bio || "",
                   approach: profileData.approach || "",
                   price: profileData.price,

@@ -54,7 +54,7 @@ const TherapistDashboard = () => {
       try {
         const { data, error } = await supabase
           .from('therapist_profiles')
-          .select('bio, price, avatar')
+          .select('bio, price, avatar, title')
           .eq('id', user.id)
           .single();
           
@@ -67,7 +67,8 @@ const TherapistDashboard = () => {
         const incomplete = !data || 
                           !data.bio || 
                           data.price === 0 || 
-                          !data.avatar;
+                          !data.avatar ||
+                          !data.title;
         
         setIsProfileComplete(!incomplete);
         
@@ -84,7 +85,7 @@ const TherapistDashboard = () => {
     };
     
     checkProfileCompleteness();
-  }, [user]);
+  }, [user, toast]);
   
   return (
     <div className="min-h-screen bg-teal-900 text-white">

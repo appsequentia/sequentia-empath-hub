@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { 
   Dialog,
   DialogContent,
@@ -22,6 +22,7 @@ interface EditProfileDialogProps {
   therapistId: string;
   therapistData: {
     name: string;
+    title: string;
     bio: string;
     approach: string;
     price: number;
@@ -35,6 +36,7 @@ const EditProfileDialog = ({ therapistId, therapistData, canEdit }: EditProfileD
   const [isOpen, setIsOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: therapistData.name,
+    title: therapistData.title,
     bio: therapistData.bio,
     approach: therapistData.approach,
     price: therapistData.price,
@@ -61,6 +63,7 @@ const EditProfileDialog = ({ therapistId, therapistData, canEdit }: EditProfileD
         .from('therapist_profiles')
         .update({
           name: formData.name,
+          title: formData.title,
           bio: formData.bio,
           approach: formData.approach,
           price: formData.price,
@@ -102,7 +105,11 @@ const EditProfileDialog = ({ therapistId, therapistData, canEdit }: EditProfileD
         duration: 3000,
       });
       
+      // Fechar o diálogo após salvar com sucesso
       setIsOpen(false);
+      
+      // Recarregar a página para refletir as alterações
+      window.location.reload();
     } catch (error) {
       console.error("Erro ao atualizar perfil:", error);
       toast({
@@ -161,6 +168,18 @@ const EditProfileDialog = ({ therapistId, therapistData, canEdit }: EditProfileD
               onChange={handleChange}
               className="bg-teal-700/40 border-lavender-400/20 text-white"
               required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="title" className="text-white">Título Profissional</Label>
+            <Input
+              id="title"
+              name="title"
+              value={formData.title}
+              onChange={handleChange}
+              className="bg-teal-700/40 border-lavender-400/20 text-white"
+              placeholder="Ex: Psicólogo, Psicoterapeuta, Psicanalista"
             />
           </div>
 

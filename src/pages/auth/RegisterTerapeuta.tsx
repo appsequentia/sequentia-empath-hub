@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -14,6 +14,8 @@ import ProfessionalProfileStep from "@/components/auth/therapist/ProfessionalPro
 import DocumentationStep from "@/components/auth/therapist/DocumentationStep";
 import SuccessMessage from "@/components/auth/therapist/SuccessMessage";
 import { ArrowLeft, ArrowRight } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 // Schema completo para validação de todos os campos do formulário
 const registerSchema = z.object({
@@ -62,6 +64,9 @@ export default function RegisterTerapeuta() {
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 3;
   const [formSubmitted, setFormSubmitted] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
+  const navigate = useNavigate();
   
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
@@ -85,10 +90,77 @@ export default function RegisterTerapeuta() {
     mode: "onBlur",
   });
   
-  const onSubmit = (data: RegisterFormValues) => {
-    console.log(data);
-    setFormSubmitted(true);
-    // Integração futura com Supabase
+  const onSubmit = async (data: RegisterFormValues) => {
+    setIsLoading(true);
+    
+    try {
+      // 1. Registrar o usuário no Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+        options: {
+          data: {
+            first_name: data.firstName,
+            last_name: data.lastName,
+            phone: data.phone,
+            cpf: data.cpf,
+          },
+        },
+      });
+      
+      if (authError) throw authError;
+      
+      if (authData.user) {
+        // 2. Criar perfil do terapeuta
+        const { error: profileError } = await supabase.from('therapist_profiles').insert({
+          id: authData.user.id,
+          name: `${data.firstName} ${data.lastName}`,
+          title: data.professionalTitle,
+          bio: data.biography,
+          approach: "",  // Vazio por padrão, será preenchido posteriormente
+          price: parseInt(data.sessionPrice) || 0,
+          avatar: "", // Vazio por padrão, será preenchido posteriormente
+          is_approved: false // Terapeuta precisa ser aprovado por um admin
+        });
+        
+        if (profileError) throw profileError;
+        
+        // 3. Adicionar especialidades
+        if (data.specialties.length > 0) {
+          const specializationsToInsert = data.specialties.map(specialty => ({
+            therapist_id: authData.user!.id,
+            specialization: specialty
+          }));
+          
+          const { error: specError } = await supabase
+            .from('therapist_specializations')
+            .insert(specializationsToInsert);
+            
+          if (specError) throw specError;
+        }
+        
+        // Sucesso!
+        setFormSubmitted(true);
+        toast({
+          title: "Cadastro realizado com sucesso!",
+          description: "Seu cadastro foi enviado para análise. Você receberá um email quando for aprovado.",
+        });
+        
+        // Redirecionar para o login após 3 segundos
+        setTimeout(() => {
+          navigate('/login-terapeuta');
+        }, 3000);
+      }
+    } catch (error: any) {
+      console.error("Erro no cadastro:", error);
+      toast({
+        title: "Erro no cadastro",
+        description: error.message || "Ocorreu um erro ao processar seu cadastro. Por favor, tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
   
   const nextStep = async () => {
@@ -172,6 +244,7 @@ export default function RegisterTerapeuta() {
                         variant="outline"
                         onClick={prevStep}
                         className="bg-transparent border-lavender-400/30 text-white hover:bg-lavender-400/10"
+                        disabled={isLoading}
                       >
                         <ArrowLeft className="mr-2 h-4 w-4" />
                         Voltar
@@ -202,8 +275,9 @@ export default function RegisterTerapeuta() {
                       <Button
                         type="submit"
                         className="bg-lavender-400 hover:bg-lavender-500 text-teal-900 font-medium"
+                        disabled={isLoading}
                       >
-                        Finalizar cadastro
+                        {isLoading ? 'Processando...' : 'Finalizar cadastro'}
                       </Button>
                     )}
                   </div>
