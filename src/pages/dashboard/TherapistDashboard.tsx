@@ -4,12 +4,17 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import TherapistAvailabilityManager from "@/components/appointments/TherapistAvailabilityManager";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar, UserCheck, DollarSign, Percent, WalletIcon } from "lucide-react";
+import { Calendar, UserCheck, DollarSign, Percent, WalletIcon, BookOpen, Briefcase, ListChecks } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import TherapistProfile from "@/components/dashboard/TherapistProfile";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import TherapistEducation from "@/components/dashboard/TherapistEducation";
+import TherapistExperience from "@/components/dashboard/TherapistExperience";
+import TherapistServices from "@/components/dashboard/TherapistServices";
+import TherapistReviews from "@/components/dashboard/TherapistReviews";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // Interface para dados do perfil
 interface TherapistProfileData {
@@ -18,6 +23,12 @@ interface TherapistProfileData {
   avatar: string;
   title: string;
   specializations?: string[];
+  plan?: {
+    id: string;
+    name: string;
+    max_services: number;
+  };
+  plan_active?: boolean;
 }
 
 const TherapistDashboard = () => {
@@ -26,6 +37,7 @@ const TherapistDashboard = () => {
   const firstName = user?.user_metadata?.first_name || "Terapeuta";
   const [isProfileComplete, setIsProfileComplete] = useState(true);
   const [profileData, setProfileData] = useState<TherapistProfileData | null>(null);
+  const [activePage, setActivePage] = useState<string>("profile");
   
   // Mock upcoming appointments data
   const upcomingAppointments = [
@@ -65,7 +77,7 @@ const TherapistDashboard = () => {
         // Buscar perfil do terapeuta
         const { data: profileData, error: profileError } = await supabase
           .from('therapist_profiles')
-          .select('*')
+          .select('*, therapist_plans!inner(*)')
           .eq('id', user.id)
           .single();
           
@@ -87,9 +99,16 @@ const TherapistDashboard = () => {
         const specializations = specializationsData?.map(item => item.specialization) || [];
         
         if (profileData) {
+          const plan = profileData.therapist_plans ? {
+            id: profileData.therapist_plans.id,
+            name: profileData.therapist_plans.name,
+            max_services: profileData.therapist_plans.max_services
+          } : undefined;
+
           setProfileData({
             ...profileData,
-            specializations
+            specializations,
+            plan
           });
           
           // Verificar se o perfil está completo o suficiente para aparecer na listagem pública
@@ -278,7 +297,79 @@ const TherapistDashboard = () => {
             </div>
             
             <div className="space-y-8">
-              <TherapistProfile />
+              {/* Perfil e abas de informações */}
+              <Card className="bg-teal-800/40 backdrop-blur-sm border-lavender-400/20">
+                <CardHeader>
+                  <Tabs defaultValue="profile" className="w-full">
+                    <TabsList className="bg-teal-700/40 border-b border-lavender-400/20 p-0 h-auto w-full mb-4">
+                      <TabsTrigger 
+                        value="profile" 
+                        className="py-2 px-4 data-[state=active]:bg-lavender-400 data-[state=active]:text-teal-900 rounded-none"
+                        onClick={() => setActivePage("profile")}
+                      >
+                        <span className="flex items-center gap-1">
+                          <UserCheck className="h-4 w-4" />
+                          Perfil
+                        </span>
+                      </TabsTrigger>
+                      <TabsTrigger 
+                        value="education" 
+                        className="py-2 px-4 data-[state=active]:bg-lavender-400 data-[state=active]:text-teal-900 rounded-none"
+                        onClick={() => setActivePage("education")}
+                      >
+                        <span className="flex items-center gap-1">
+                          <BookOpen className="h-4 w-4" />
+                          Formação
+                        </span>
+                      </TabsTrigger>
+                      <TabsTrigger 
+                        value="experience" 
+                        className="py-2 px-4 data-[state=active]:bg-lavender-400 data-[state=active]:text-teal-900 rounded-none"
+                        onClick={() => setActivePage("experience")}
+                      >
+                        <span className="flex items-center gap-1">
+                          <Briefcase className="h-4 w-4" />
+                          Experiência
+                        </span>
+                      </TabsTrigger>
+                      <TabsTrigger 
+                        value="services" 
+                        className="py-2 px-4 data-[state=active]:bg-lavender-400 data-[state=active]:text-teal-900 rounded-none"
+                        onClick={() => setActivePage("services")}
+                      >
+                        <span className="flex items-center gap-1">
+                          <ListChecks className="h-4 w-4" />
+                          Serviços
+                        </span>
+                      </TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="profile">
+                      <TherapistProfile />
+                    </TabsContent>
+
+                    <TabsContent value="education">
+                      <TherapistEducation therapistId={user?.id} />
+                    </TabsContent>
+
+                    <TabsContent value="experience">
+                      <TherapistExperience therapistId={user?.id} />
+                    </TabsContent>
+
+                    <TabsContent value="services">
+                      <TherapistServices 
+                        therapistId={user?.id} 
+                        planLimit={profileData?.plan?.max_services || 2}
+                        planName={profileData?.plan?.name || "Básico"}
+                        planActive={profileData?.plan_active !== false}
+                      />
+                    </TabsContent>
+                  </Tabs>
+                </CardHeader>
+              </Card>
+
+              {/* Reviews section */}
+              <TherapistReviews therapistId={user?.id} />
             </div>
           </div>
         </div>

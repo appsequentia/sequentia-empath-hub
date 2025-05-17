@@ -36,6 +36,124 @@ export type Database = {
         }
         Relationships: []
       }
+      therapist_education: {
+        Row: {
+          created_at: string
+          degree: string
+          description: string | null
+          id: string
+          institution: string
+          therapist_id: string
+          updated_at: string
+          year: string
+        }
+        Insert: {
+          created_at?: string
+          degree: string
+          description?: string | null
+          id?: string
+          institution: string
+          therapist_id: string
+          updated_at?: string
+          year: string
+        }
+        Update: {
+          created_at?: string
+          degree?: string
+          description?: string | null
+          id?: string
+          institution?: string
+          therapist_id?: string
+          updated_at?: string
+          year?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "therapist_education_therapist_id_fkey"
+            columns: ["therapist_id"]
+            isOneToOne: false
+            referencedRelation: "therapist_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      therapist_experience: {
+        Row: {
+          company: string
+          created_at: string
+          current: boolean | null
+          description: string | null
+          end_date: string | null
+          id: string
+          position: string
+          start_date: string
+          therapist_id: string
+          updated_at: string
+        }
+        Insert: {
+          company: string
+          created_at?: string
+          current?: boolean | null
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          position: string
+          start_date: string
+          therapist_id: string
+          updated_at?: string
+        }
+        Update: {
+          company?: string
+          created_at?: string
+          current?: boolean | null
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          position?: string
+          start_date?: string
+          therapist_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "therapist_experience_therapist_id_fkey"
+            columns: ["therapist_id"]
+            isOneToOne: false
+            referencedRelation: "therapist_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      therapist_plans: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          max_services: number
+          name: string
+          price: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          max_services: number
+          name: string
+          price: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          max_services?: number
+          name?: string
+          price?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       therapist_profiles: {
         Row: {
           approach: string | null
@@ -46,6 +164,8 @@ export type Database = {
           id: string
           is_approved: boolean
           name: string
+          plan_active: boolean | null
+          plan_id: string | null
           price: number
           rating: number | null
           reviews: number | null
@@ -62,6 +182,8 @@ export type Database = {
           id: string
           is_approved?: boolean
           name: string
+          plan_active?: boolean | null
+          plan_id?: string | null
           price?: number
           rating?: number | null
           reviews?: number | null
@@ -78,6 +200,8 @@ export type Database = {
           id?: string
           is_approved?: boolean
           name?: string
+          plan_active?: boolean | null
+          plan_id?: string | null
           price?: number
           rating?: number | null
           reviews?: number | null
@@ -85,7 +209,97 @@ export type Database = {
           title?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "therapist_profiles_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "therapist_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      therapist_reviews: {
+        Row: {
+          client_id: string
+          comment: string | null
+          created_at: string
+          id: string
+          rating: number
+          therapist_id: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          comment?: string | null
+          created_at?: string
+          id?: string
+          rating: number
+          therapist_id: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          comment?: string | null
+          created_at?: string
+          id?: string
+          rating?: number
+          therapist_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "therapist_reviews_therapist_id_fkey"
+            columns: ["therapist_id"]
+            isOneToOne: false
+            referencedRelation: "therapist_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      therapist_services: {
+        Row: {
+          active: boolean
+          created_at: string
+          description: string | null
+          duration: number
+          id: string
+          name: string
+          price: number
+          therapist_id: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          duration: number
+          id?: string
+          name: string
+          price: number
+          therapist_id: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          duration?: number
+          id?: string
+          name?: string
+          price?: number
+          therapist_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "therapist_services_therapist_id_fkey"
+            columns: ["therapist_id"]
+            isOneToOne: false
+            referencedRelation: "therapist_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       therapist_specializations: {
         Row: {
