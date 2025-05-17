@@ -15,6 +15,8 @@ import RegisterCliente from "./pages/auth/RegisterCliente";
 import LoginTerapeuta from "./pages/auth/LoginTerapeuta";
 import RegisterTerapeuta from "./pages/auth/RegisterTerapeuta";
 import AdminPanel from "./pages/admin/AdminPanel";
+import ClientDashboard from "./pages/dashboard/ClientDashboard";
+import TherapistDashboard from "./pages/dashboard/TherapistDashboard";
 
 const queryClient = new QueryClient();
 
@@ -35,6 +37,8 @@ const App = () => (
           <Route path="/login-terapeuta" element={<LoginTerapeuta />} />
           <Route path="/register-terapeuta" element={<RegisterTerapeuta />} />
           <Route path="/admin" element={<AdminPanel />} />
+          <Route path="/dashboard-cliente" element={<ClientDashboard />} />
+          <Route path="/dashboard-terapeuta" element={<TherapistDashboard />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

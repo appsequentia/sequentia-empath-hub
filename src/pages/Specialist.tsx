@@ -1,11 +1,10 @@
-
 import { useParams } from "react-router-dom";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Star, Check, Briefcase, Clock, Calendar } from "lucide-react";
+import ScheduleAppointmentDialog from "@/components/appointments/ScheduleAppointmentDialog";
 
 // Sample therapist data - in a real app this would come from an API or database
 const therapistData = {
@@ -339,9 +338,7 @@ const SpecialistDetail = () => {
                     ))}
                   </div>
                   
-                  <Button className="w-full mt-6 bg-lavender-400 hover:bg-lavender-500 text-teal-900">
-                    Agendar Consulta
-                  </Button>
+                  <ScheduleAppointmentDialog therapistId={therapist.id} therapistName={therapist.name} />
                 </CardContent>
               </Card>
               
