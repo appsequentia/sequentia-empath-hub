@@ -20,6 +20,7 @@ import ClientDashboard from "./pages/dashboard/ClientDashboard";
 import TherapistDashboard from "./pages/dashboard/TherapistDashboard";
 import Pagamento from "./pages/Pagamento";
 import Contact from "./pages/Contact";
+import Specialists from "./pages/Specialists";
 
 const queryClient = new QueryClient();
 
@@ -35,6 +36,7 @@ const App = () => (
           <Route path="/assessment/start" element={<AssessmentStart />} />
           <Route path="/assessment/questions/:questionId" element={<AssessmentQuestion />} />
           <Route path="/assessment/results" element={<AssessmentResults />} />
+          <Route path="/specialists" element={<Specialists />} />
           <Route path="/specialists/:id" element={<SpecialistDetail />} />
           <Route path="/login-cliente" element={<LoginCliente />} />
           <Route path="/register-cliente" element={<RegisterCliente />} />
