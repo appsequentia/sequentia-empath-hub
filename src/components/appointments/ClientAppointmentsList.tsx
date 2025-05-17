@@ -1,46 +1,17 @@
 
-import React from "react";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Calendar, Check, Clock, X } from "lucide-react";
+import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Appointment, mockAppointments } from "@/models/Appointment";
-import { toast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { Calendar, CreditCard } from "lucide-react";
+import { mockAppointments, Appointment } from "@/models/Appointment";
+import { Link } from "react-router-dom";
 
-const getStatusBadge = (status: Appointment["status"]) => {
-  switch (status) {
-    case "pending":
-      return <span className="bg-yellow-500/30 text-yellow-200 px-2 py-1 rounded-full text-xs">Pendente</span>;
-    case "confirmed":
-      return <span className="bg-green-500/30 text-green-200 px-2 py-1 rounded-full text-xs">Confirmada</span>;
-    case "completed":
-      return <span className="bg-blue-500/30 text-blue-200 px-2 py-1 rounded-full text-xs">Concluída</span>;
-    case "cancelled":
-      return <span className="bg-red-500/30 text-red-200 px-2 py-1 rounded-full text-xs">Cancelada</span>;
-    default:
-      return null;
-  }
-};
-
-const ClientAppointmentsList = () => {
-  const appointments = mockAppointments;
+const ClientAppointmentsList: React.FC = () => {
+  const [appointments, setAppointments] = useState<Appointment[]>(mockAppointments);
   
-  const handleCancelAppointment = (appointmentId: string) => {
-    console.log("Cancel appointment:", appointmentId);
-    toast({
-      title: "Sessão cancelada",
-      description: "A sessão foi cancelada com sucesso.",
-      variant: "default"
-    });
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('pt-BR');
   };
   
   return (
@@ -48,61 +19,53 @@ const ClientAppointmentsList = () => {
       <CardHeader>
         <CardTitle className="text-white flex items-center gap-2">
           <Calendar className="h-5 w-5 text-lavender-400" />
-          Minhas Sessões
+          Minhas Consultas
         </CardTitle>
       </CardHeader>
       <CardContent>
         {appointments.length === 0 ? (
-          <div className="text-center py-8">
-            <p className="text-white/70">Você não possui sessões agendadas.</p>
-          </div>
+          <p className="text-white/70 text-center py-4">
+            Você não possui nenhuma consulta agendada.
+          </p>
         ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-lavender-400/20">
-                  <TableHead className="text-white">Terapeuta</TableHead>
-                  <TableHead className="text-white">Data</TableHead>
-                  <TableHead className="text-white">Hora</TableHead>
-                  <TableHead className="text-white">Status</TableHead>
-                  <TableHead className="text-white">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {appointments.map((appointment) => (
-                  <TableRow key={appointment.id} className="border-lavender-400/20">
-                    <TableCell className="text-white">{appointment.therapistName}</TableCell>
-                    <TableCell className="text-white">
-                      {format(new Date(appointment.date), "dd/MM/yyyy")}
-                    </TableCell>
-                    <TableCell className="text-white">{appointment.time}</TableCell>
-                    <TableCell>{getStatusBadge(appointment.status)}</TableCell>
-                    <TableCell>
-                      {(appointment.status === "pending" || appointment.status === "confirmed") && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="border-red-400/40 hover:border-red-400/60 text-red-300 hover:text-red-200"
-                          onClick={() => handleCancelAppointment(appointment.id)}
-                        >
-                          <X className="h-4 w-4 mr-1" />
-                          Cancelar
-                        </Button>
-                      )}
-                      {appointment.status === "completed" && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="border-lavender-400/40 hover:border-lavender-400/60 text-lavender-300"
-                        >
-                          Avaliar
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+          <div className="space-y-4">
+            {appointments.map((appointment) => (
+              <div
+                key={appointment.id}
+                className="p-4 rounded-md bg-teal-700/40"
+              >
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div>
+                    <h3 className="font-semibold text-lavender-300">
+                      {appointment.therapistName}
+                    </h3>
+                    <p className="text-sm text-white/70">
+                      {formatDate(appointment.date)} às {appointment.time}
+                    </p>
+                    <p className="text-xs mt-1 inline-block px-2 py-1 rounded-full bg-teal-600/50">
+                      {appointment.status === "confirmed" && "Confirmada"}
+                      {appointment.status === "pending" && "Aguardando confirmação"}
+                      {appointment.status === "completed" && "Realizada"}
+                      {appointment.status === "cancelled" && "Cancelada"}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Link 
+                      to="/pagamento" 
+                      state={{ appointment: {
+                        ...appointment,
+                        price: 180.00 // Mock price for session
+                      }}}
+                    >
+                      <Button size="sm" variant="outline" className="border-lavender-400/30 hover:bg-lavender-400/10">
+                        <CreditCard className="h-4 w-4 mr-1" />
+                        Pagar
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </CardContent>
