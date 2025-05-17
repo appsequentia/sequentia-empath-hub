@@ -9,6 +9,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Form,
   FormControl,
@@ -20,7 +21,13 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 const registerSchema = z.object({
-  fullName: z.string().min(3, "Nome completo deve ter pelo menos 3 caracteres"),
+  fullName: z.string()
+    .min(3, "Nome completo deve ter pelo menos 3 caracteres")
+    .transform((name) => {
+      // Divide o nome completo em primeiro nome e sobrenome
+      const parts = name.trim().split(/\s+/);
+      return parts;
+    }),
   email: z.string().email("Email inválido"),
   password: z.string().min(6, "A senha deve ter pelo menos 6 caracteres"),
 });
@@ -29,6 +36,7 @@ type RegisterFormValues = z.infer<typeof registerSchema>;
 
 export default function RegisterCliente() {
   const [showPassword, setShowPassword] = useState(false);
+  const { signUp } = useAuth();
   
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
@@ -39,9 +47,12 @@ export default function RegisterCliente() {
     },
   });
   
-  const onSubmit = (data: RegisterFormValues) => {
-    console.log(data);
-    // Integração futura com Supabase
+  const onSubmit = async (data: RegisterFormValues) => {
+    // Extrai o primeiro nome e o restante como sobrenome
+    const firstName = data.fullName[0];
+    const lastName = data.fullName.slice(1).join(' ');
+    
+    await signUp(data.email, data.password, firstName, lastName);
   };
   
   return (
@@ -73,6 +84,8 @@ export default function RegisterCliente() {
                             placeholder="Seu nome completo" 
                             className="bg-teal-700/50 text-white border-lavender-400/30 placeholder:text-white/50"
                             {...field} 
+                            value={typeof field.value === 'string' ? field.value : field.value?.join(' ') || ''}
+                            onChange={(e) => field.onChange(e.target.value)}
                           />
                         </FormControl>
                         <FormMessage />

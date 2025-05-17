@@ -9,6 +9,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Form,
   FormControl,
@@ -28,6 +29,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function LoginTerapeuta() {
   const [showPassword, setShowPassword] = useState(false);
+  const { signIn } = useAuth();
   
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -37,9 +39,8 @@ export default function LoginTerapeuta() {
     },
   });
   
-  const onSubmit = (data: LoginFormValues) => {
-    console.log(data);
-    // Integração futura com Supabase
+  const onSubmit = async (data: LoginFormValues) => {
+    await signIn(data.email, data.password);
   };
   
   return (
