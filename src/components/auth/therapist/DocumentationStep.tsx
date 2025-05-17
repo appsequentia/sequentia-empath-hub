@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { UseFormReturn } from "react-hook-form";
-import { upload } from "lucide-react";
+import { Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   FormControl,
@@ -63,7 +63,7 @@ const DocumentationStep: React.FC<DocumentationStepProps> = ({ form }) => {
                       className="object-cover w-full h-full"
                     />
                   ) : (
-                    <upload className="h-10 w-10 text-white/50" />
+                    <Upload className="h-10 w-10 text-white/50" />
                   )}
                 </div>
                 
@@ -71,7 +71,7 @@ const DocumentationStep: React.FC<DocumentationStepProps> = ({ form }) => {
                   htmlFor="profile-picture-upload"
                   className="cursor-pointer bg-lavender-400/30 hover:bg-lavender-400/40 text-white px-4 py-2 rounded-md transition-colors flex items-center gap-2"
                 >
-                  <upload className="h-4 w-4" />
+                  <Upload className="h-4 w-4" />
                   {profilePictureFile ? "Alterar foto" : "Selecionar foto"}
                 </Label>
                 
@@ -120,7 +120,7 @@ const DocumentationStep: React.FC<DocumentationStepProps> = ({ form }) => {
                     htmlFor="certificate-upload"
                     className="cursor-pointer ml-auto bg-lavender-400/30 hover:bg-lavender-400/40 text-white px-3 py-1.5 rounded-md transition-colors flex items-center gap-2"
                   >
-                    <upload className="h-4 w-4" />
+                    <Upload className="h-4 w-4" />
                     {certificateFile ? "Alterar" : "Upload"}
                   </Label>
                 </div>
@@ -170,7 +170,7 @@ const DocumentationStep: React.FC<DocumentationStepProps> = ({ form }) => {
                     htmlFor="id-document-upload"
                     className="cursor-pointer ml-auto bg-lavender-400/30 hover:bg-lavender-400/40 text-white px-3 py-1.5 rounded-md transition-colors flex items-center gap-2"
                   >
-                    <upload className="h-4 w-4" />
+                    <Upload className="h-4 w-4" />
                     {idDocumentFile ? "Alterar" : "Upload"}
                   </Label>
                 </div>
