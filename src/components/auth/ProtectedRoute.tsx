@@ -7,9 +7,14 @@ import { supabase } from "@/integrations/supabase/client";
 interface ProtectedRouteProps {
   children: ReactNode;
   allowedRoles?: string[];
+  redirectPath?: string;
 }
 
-const ProtectedRoute = ({ children, allowedRoles = [] }: ProtectedRouteProps) => {
+const ProtectedRoute = ({ 
+  children, 
+  allowedRoles = [], 
+  redirectPath = "/login-cliente" 
+}: ProtectedRouteProps) => {
   const { user, isLoading } = useAuth();
   const [userRole, setUserRole] = useState<string | null>(null);
   const [checkingRole, setCheckingRole] = useState(allowedRoles.length > 0);
@@ -51,7 +56,7 @@ const ProtectedRoute = ({ children, allowedRoles = [] }: ProtectedRouteProps) =>
 
   // Se não estiver autenticado, redireciona para o login
   if (!user) {
-    return <Navigate to="/login-cliente" />;
+    return <Navigate to={redirectPath} />;
   }
 
   // Se houver roles específicas necessárias e o usuário não tiver uma delas, nega o acesso

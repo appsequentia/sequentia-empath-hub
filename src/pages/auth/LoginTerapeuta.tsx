@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -30,6 +30,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 export default function LoginTerapeuta() {
   const [showPassword, setShowPassword] = useState(false);
   const { signIn } = useAuth();
+  const navigate = useNavigate();
   
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -40,7 +41,12 @@ export default function LoginTerapeuta() {
   });
   
   const onSubmit = async (data: LoginFormValues) => {
-    await signIn(data.email, data.password);
+    await signIn(data.email, data.password, 'terapeuta');
+  };
+  
+  // Redirecionar para a página de login principal com a aba de terapeuta ativa
+  const goToMainLogin = () => {
+    navigate('/login-cliente', { state: { activeTab: 'terapeuta' } });
   };
   
   return (

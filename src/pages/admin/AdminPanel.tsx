@@ -8,44 +8,30 @@ import UsersList from "@/components/admin/UsersList";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { Navigate } from "react-router-dom";
 
 export default function AdminPanel() {
-  const { user } = useAuth();
+  const { user, userRole } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
   
   useEffect(() => {
-    const checkAdminRole = async () => {
-      if (!user) return;
-      
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', user.id)
-          .single();
-        
-        if (error) {
-          console.error("Erro ao verificar role:", error);
-          return;
-        }
-        
-        setIsAdmin(data.role === 'admin');
-      } catch (err) {
-        console.error("Erro ao verificar permissões:", err);
-      } finally {
-        setLoading(false);
-        toast({
-          title: "Bem-vindo ao painel administrativo",
-          description: "Todos os dados foram carregados com sucesso.",
-        });
-      }
-    };
+    // Simples efeito para mostrar a página carregando
+    const timer = setTimeout(() => {
+      setLoading(false);
+      toast({
+        title: "Bem-vindo ao painel administrativo",
+        description: "Todos os dados foram carregados com sucesso.",
+      });
+    }, 1000);
     
-    checkAdminRole();
-  }, [user, toast]);
+    return () => clearTimeout(timer);
+  }, [toast]);
+
+  // Redirecionamento se o usuário não for admin
+  if (!loading && userRole !== 'admin') {
+    return <Navigate to="/" />;
+  }
 
   if (loading) {
     return (
