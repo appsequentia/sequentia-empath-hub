@@ -85,12 +85,30 @@ export function Hero() {
             </div>
             
             <div className="mt-10 flex flex-col sm:flex-row items-start gap-4 animate-fade-in" style={{ animationDelay: '0.4s' }}>
-              <Link to="/assessment/start">
-                <Button className="bg-lavender-400 hover:bg-lavender-500 text-teal-900 font-medium px-8 py-6 text-lg w-full sm:w-auto group">
-                  Iniciar diagnóstico
-                  <ArrowRight className="ml-2 w-5 h-5 transition-transform group-hover:translate-x-1" />
-                </Button>
-              </Link>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button className="bg-lavender-400 hover:bg-lavender-500 text-teal-900 font-medium px-8 py-6 text-lg w-full sm:w-auto group">
+                    Criar Conta
+                    <ArrowRight className="ml-2 w-5 h-5 transition-transform group-hover:translate-x-1" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="bg-teal-800 border-lavender-400/30 p-0 w-48">
+                  <div className="flex flex-col">
+                    <Link 
+                      to="/register-cliente" 
+                      className="text-white hover:bg-lavender-400/20 px-4 py-3 text-sm transition-colors"
+                    >
+                      Sou Cliente
+                    </Link>
+                    <Link 
+                      to="/register-terapeuta"
+                      className="text-white hover:bg-lavender-400/20 px-4 py-3 text-sm transition-colors"
+                    >
+                      Sou Terapeuta
+                    </Link>
+                  </div>
+                </PopoverContent>
+              </Popover>
               <Link to="/specialists">
                 <Button variant="outline" className="bg-transparent border-lavender-400 text-white hover:bg-lavender-500/20 px-8 py-6 text-lg w-full sm:w-auto">
                   Ver especialistas
