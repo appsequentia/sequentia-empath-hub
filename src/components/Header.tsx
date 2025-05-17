@@ -31,12 +31,12 @@ export function Header() {
           <Link to="/contato" className="text-white/90 hover:text-lavender-300 transition-colors">
             Contato
           </Link>
-          <Link to="/login-client">
+          <Link to="/login-cliente">
             <Button variant="outline" className="bg-transparent border-lavender-400 text-white hover:bg-lavender-500/20">
               Entrar
             </Button>
           </Link>
-          <Link to="/signup-client">
+          <Link to="/signup-cliente">
             <Button className="bg-lavender-400 hover:bg-lavender-500 text-teal-900 font-medium">
               Começar agora
             </Button>
@@ -82,28 +82,28 @@ export function Header() {
                   Contato
                 </Link>
                 <Link 
-                  to="/login-client" 
+                  to="/login-cliente" 
                   className="text-lg p-2 hover:bg-lavender-400/20 rounded-md"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   Entrar como cliente
                 </Link>
                 <Link 
-                  to="/login-therapist" 
+                  to="/login-terapeuta" 
                   className="text-lg p-2 hover:bg-lavender-400/20 rounded-md"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   Entrar como terapeuta
                 </Link>
                 <Link 
-                  to="/signup-client" 
+                  to="/signup-cliente" 
                   className="text-lg p-2 bg-lavender-400 text-teal-900 rounded-md"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   Cadastre-se como cliente
                 </Link>
                 <Link 
-                  to="/signup-therapist" 
+                  to="/signup-terapeuta" 
                   className="text-lg p-2 border border-lavender-400 rounded-md mt-2"
                   onClick={() => setIsMenuOpen(false)}
                 >
