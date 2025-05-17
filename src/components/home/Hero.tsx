@@ -15,8 +15,8 @@ export function Hero() {
       <div className="max-w-7xl mx-auto px-6 md:px-10 relative z-10">
         <div className="grid md:grid-cols-5 gap-10 items-center">
           <div className="md:col-span-3 text-left">
-            <h1 className="text-5xl md:text-7xl font-bold text-white leading-tight animate-fade-in">
-              Encontre seu <span className="text-lavender-300">equilíbrio emocional</span>
+            <h1 className="text-5xl md:text-6xl font-bold text-white leading-tight animate-fade-in">
+              Encontre o caminho para o seu <span className="text-lavender-300">bem-estar emocional</span>
             </h1>
             
             <p className="mt-6 text-xl text-white/80 animate-fade-in" style={{ animationDelay: '0.2s' }}>
