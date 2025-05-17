@@ -7,6 +7,8 @@ import { FeaturedTherapists } from "@/components/home/FeaturedTherapists";
 import { TherapyTypes } from "@/components/home/TherapyTypes";
 import { Testimonials } from "@/components/home/Testimonials";
 import { CtaSection } from "@/components/home/CtaSection";
+import { SessionPackages } from "@/components/home/SessionPackages";
+import { SubscriptionPlans } from "@/components/home/SubscriptionPlans";
 
 const Index = () => {
   return (
@@ -18,6 +20,8 @@ const Index = () => {
         <FeaturedTherapists />
         <TherapyTypes />
         <Testimonials />
+        <SessionPackages />
+        <SubscriptionPlans />
         <CtaSection />
       </main>
       <Footer />
