@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -29,18 +30,16 @@ export function FeaturedTherapists() {
           .from('therapist_profiles')
           .select('*')
           .eq('is_approved', true)
-          // Filtrando apenas perfis completos
-          .not('avatar', 'is', null)
-          .not('bio', 'is', null)
-          .not('title', 'is', null)
-          .gt('price', 0)
+          // Filtrando apenas perfis completos, mas deixando mais flexível para perfis de teste
           .order('rating', { ascending: false })
-          .limit(3);
+          .limit(6);
         
         if (error) {
           console.error("Erro ao buscar terapeutas:", error);
           return;
         }
+
+        console.log("Terapeutas encontrados:", data);
 
         // Buscar especializações para cada terapeuta
         const therapistsWithSpecializations = await Promise.all(
@@ -51,7 +50,7 @@ export function FeaturedTherapists() {
               .eq('therapist_id', therapist.id);
             
             if (specError) {
-              console.error("Erro ao buscar especializações:", specError);
+              console.error("Erro ao buscar especializações para terapeuta", therapist.id, ":", specError);
               return {
                 ...therapist,
                 specializations: [],
@@ -59,11 +58,8 @@ export function FeaturedTherapists() {
               };
             }
             
-            // Se o terapeuta não tiver especializações, não o mostrar
             const specializations = specData?.map((spec: any) => spec.specialization) || [];
-            if (specializations.length === 0) {
-              return null;
-            }
+            console.log(`Especialidades para ${therapist.name}:`, specializations);
             
             return {
               ...therapist,
@@ -73,8 +69,7 @@ export function FeaturedTherapists() {
           })
         );
 
-        // Filtrar terapeutas nulos (sem especialidades)
-        setTherapists(therapistsWithSpecializations.filter(Boolean) as TherapistWithSpecializations[]);
+        setTherapists(therapistsWithSpecializations as TherapistWithSpecializations[]);
       } catch (error) {
         console.error("Erro ao buscar dados:", error);
       } finally {
