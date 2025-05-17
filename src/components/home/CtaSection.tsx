@@ -1,10 +1,7 @@
-
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-
 export function CtaSection() {
-  return (
-    <section className="py-16 md:py-24 relative">
+  return <section className="py-16 md:py-24 relative bg-lavender-400">
       <div className="absolute inset-0 bg-lavender-400/10 pointer-events-none" />
       
       <div className="relative z-10 max-w-7xl mx-auto px-6 md:px-10">
@@ -35,6 +32,5 @@ export function CtaSection() {
           </div>
         </div>
       </div>
-    </section>
-  );
+    </section>;
 }
