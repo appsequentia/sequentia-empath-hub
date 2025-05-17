@@ -10,6 +10,10 @@ import AssessmentQuestion from "./pages/assessment/Question";
 import AssessmentResults from "./pages/assessment/Results";
 import SpecialistDetail from "./pages/Specialist";
 import NotFound from "./pages/NotFound";
+import LoginCliente from "./pages/auth/LoginCliente";
+import RegisterCliente from "./pages/auth/RegisterCliente";
+import LoginTerapeuta from "./pages/auth/LoginTerapeuta";
+import RegisterTerapeuta from "./pages/auth/RegisterTerapeuta";
 
 const queryClient = new QueryClient();
 
@@ -25,6 +29,10 @@ const App = () => (
           <Route path="/assessment/questions/:questionId" element={<AssessmentQuestion />} />
           <Route path="/assessment/results" element={<AssessmentResults />} />
           <Route path="/specialists/:id" element={<SpecialistDetail />} />
+          <Route path="/login-cliente" element={<LoginCliente />} />
+          <Route path="/register-cliente" element={<RegisterCliente />} />
+          <Route path="/login-terapeuta" element={<LoginTerapeuta />} />
+          <Route path="/register-terapeuta" element={<RegisterTerapeuta />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
