@@ -28,6 +28,9 @@ export function Header() {
           <Link to="/therapies" className="text-white/90 hover:text-lavender-300 transition-colors">
             Terapias
           </Link>
+          <Link to="/contato" className="text-white/90 hover:text-lavender-300 transition-colors">
+            Contato
+          </Link>
           <Link to="/login-client">
             <Button variant="outline" className="bg-transparent border-lavender-400 text-white hover:bg-lavender-500/20">
               Entrar
@@ -70,6 +73,13 @@ export function Header() {
                   onClick={() => setIsMenuOpen(false)}
                 >
                   Terapias
+                </Link>
+                <Link 
+                  to="/contato" 
+                  className="text-lg p-2 hover:bg-lavender-400/20 rounded-md"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Contato
                 </Link>
                 <Link 
                   to="/login-client" 
