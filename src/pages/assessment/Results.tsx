@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -180,7 +179,7 @@ const AssessmentResults = () => {
     }
   }, [navigate]);
   
-  // Se a pontuação não estiver disponível, mostrar um carregamento
+  // If the pontuação não estiver disponível, mostrar um carregamento
   if (score === null || messageData === null) {
     return (
       <div className="min-h-screen bg-teal-900 text-white flex items-center justify-center">
@@ -353,9 +352,9 @@ const AssessmentResults = () => {
           </Tabs>
           
           <div className="mt-8 flex flex-col md:flex-row justify-center gap-4">
-            <Link to="/assessment/start">
+            <Link to="/pagamento" state={{ recommendedTherapists }}>
               <Button variant="outline" className="bg-transparent border-lavender-400 text-white hover:bg-lavender-500/20">
-                Refazer avaliação
+                Ver planos e agendar uma sessão
               </Button>
             </Link>
             <Link to="/register-cliente">
