@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { z } from "zod";
@@ -22,12 +21,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 
 const registerSchema = z.object({
   fullName: z.string()
-    .min(3, "Nome completo deve ter pelo menos 3 caracteres")
-    .transform((name) => {
-      // Divide o nome completo em primeiro nome e sobrenome
-      const parts = name.trim().split(/\s+/);
-      return parts;
-    }),
+    .min(3, "Nome completo deve ter pelo menos 3 caracteres"),
   email: z.string().email("Email inválido"),
   password: z.string().min(6, "A senha deve ter pelo menos 6 caracteres"),
 });
@@ -49,8 +43,9 @@ export default function RegisterCliente() {
   
   const onSubmit = async (data: RegisterFormValues) => {
     // Extrai o primeiro nome e o restante como sobrenome
-    const firstName = data.fullName[0];
-    const lastName = data.fullName.slice(1).join(' ');
+    const nameParts = data.fullName.trim().split(/\s+/);
+    const firstName = nameParts[0];
+    const lastName = nameParts.slice(1).join(' ');
     
     await signUp(data.email, data.password, firstName, lastName);
   };
