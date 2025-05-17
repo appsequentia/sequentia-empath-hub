@@ -4,176 +4,212 @@ import { Link } from "react-router-dom";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Eye, EyeOff } from "lucide-react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import StepIndicator from "@/components/auth/StepIndicator";
+import BasicInfoStep from "@/components/auth/therapist/BasicInfoStep";
+import ProfessionalProfileStep from "@/components/auth/therapist/ProfessionalProfileStep";
+import DocumentationStep from "@/components/auth/therapist/DocumentationStep";
+import SuccessMessage from "@/components/auth/therapist/SuccessMessage";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 
+// Schema completo para validação de todos os campos do formulário
 const registerSchema = z.object({
-  fullName: z.string().min(3, "Nome completo deve ter pelo menos 3 caracteres"),
+  // Etapa 1: Informações Básicas
+  firstName: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
+  lastName: z.string().min(2, "Sobrenome deve ter pelo menos 2 caracteres"),
   email: z.string().email("Email inválido"),
   password: z.string().min(6, "A senha deve ter pelo menos 6 caracteres"),
-  specialty: z.string().min(3, "Especialidade deve ter pelo menos 3 caracteres"),
+  confirmPassword: z.string().min(6, "A confirmação de senha deve ter pelo menos 6 caracteres"),
+  phone: z.string().min(10, "Telefone inválido"),
+  cpf: z.string().min(11, "CPF inválido"),
+  
+  // Etapa 2: Perfil Profissional
+  professionalTitle: z.string().min(1, "Selecione um título profissional"),
+  registrationNumber: z.string().min(3, "Número de registro inválido"),
+  specialties: z.array(z.string()).min(1, "Selecione pelo menos uma especialidade"),
+  biography: z.string().min(50, "A biografia deve ter pelo menos 50 caracteres"),
+  sessionPrice: z.string().min(1, "Informe o valor da sessão"),
+  sessionDuration: z.string().min(1, "Selecione a duração da sessão"),
+  
+  // Etapa 3: Documentação
+  profilePicture: z.any().optional(),
+  certificate: z.any().optional(),
+  idDocument: z.any().optional(),
+  termsAccepted: z.boolean().refine(val => val === true, {
+    message: "Você precisa aceitar os termos de serviço e política de privacidade"
+  }),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "As senhas não coincidem",
+  path: ["confirmPassword"],
 });
 
 type RegisterFormValues = z.infer<typeof registerSchema>;
 
 export default function RegisterTerapeuta() {
-  const [showPassword, setShowPassword] = useState(false);
+  const [currentStep, setCurrentStep] = useState(1);
+  const totalSteps = 3;
+  const [formSubmitted, setFormSubmitted] = useState(false);
   
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
-      fullName: "",
+      firstName: "",
+      lastName: "",
       email: "",
       password: "",
-      specialty: "",
+      confirmPassword: "",
+      phone: "",
+      cpf: "",
+      professionalTitle: "",
+      registrationNumber: "",
+      specialties: [],
+      biography: "",
+      sessionPrice: "",
+      sessionDuration: "",
+      termsAccepted: false,
     },
+    mode: "onBlur",
   });
   
   const onSubmit = (data: RegisterFormValues) => {
     console.log(data);
+    setFormSubmitted(true);
     // Integração futura com Supabase
+  };
+  
+  const nextStep = async () => {
+    let fieldsToValidate: string[] = [];
+    
+    // Definir quais campos validar com base na etapa atual
+    if (currentStep === 1) {
+      fieldsToValidate = ["firstName", "lastName", "email", "password", "confirmPassword", "phone", "cpf"];
+    } else if (currentStep === 2) {
+      fieldsToValidate = ["professionalTitle", "registrationNumber", "specialties", "biography", "sessionPrice", "sessionDuration"];
+    }
+    
+    // Validar apenas os campos da etapa atual
+    const result = await form.trigger(fieldsToValidate as any);
+    
+    if (result) {
+      setCurrentStep(prev => Math.min(prev + 1, totalSteps));
+    }
+  };
+  
+  const prevStep = () => {
+    setCurrentStep(prev => Math.max(prev - 1, 1));
+  };
+  
+  // Renderizar o conteúdo com base na etapa atual
+  const renderStepContent = () => {
+    if (formSubmitted) {
+      return <SuccessMessage />;
+    }
+    
+    switch (currentStep) {
+      case 1:
+        return <BasicInfoStep form={form} />;
+      case 2:
+        return <ProfessionalProfileStep form={form} />;
+      case 3:
+        return <DocumentationStep form={form} />;
+      default:
+        return null;
+    }
   };
   
   return (
     <>
       <Header />
       <main className="flex items-center justify-center min-h-[calc(100vh-180px)] pt-24 pb-16 px-4">
-        <div className="w-full max-w-md">
+        <div className="w-full max-w-2xl">
           <Card className="border-lavender-400/20 bg-teal-800/40 backdrop-blur-sm">
             <CardHeader className="space-y-2">
               <CardTitle className="text-2xl font-bold text-center text-white">
                 Cadastro de Terapeuta
               </CardTitle>
               <CardDescription className="text-center text-white/70">
-                Crie sua conta e comece a atender na plataforma
+                {!formSubmitted ? 
+                  `Etapa ${currentStep} de ${totalSteps}: ${currentStep === 1 ? 'Informações Básicas' : currentStep === 2 ? 'Perfil Profissional' : 'Documentação'}` : 
+                  "Cadastro enviado com sucesso!"}
               </CardDescription>
+              
+              {!formSubmitted && (
+                <StepIndicator currentStep={currentStep} totalSteps={totalSteps} />
+              )}
             </CardHeader>
             
             <CardContent>
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                  <FormField
-                    control={form.control}
-                    name="fullName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-white">Nome Completo</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="Seu nome completo" 
-                            className="bg-teal-700/50 text-white border-lavender-400/30 placeholder:text-white/50"
-                            {...field} 
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
+              <form onSubmit={form.handleSubmit(onSubmit)}>
+                {renderStepContent()}
+                
+                {!formSubmitted && (
+                  <div className="flex justify-between mt-8">
+                    {currentStep > 1 ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={prevStep}
+                        className="bg-transparent border-lavender-400/30 text-white hover:bg-lavender-400/10"
+                      >
+                        <ArrowLeft className="mr-2 h-4 w-4" />
+                        Voltar
+                      </Button>
+                    ) : (
+                      <Link to="/login-terapeuta">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="bg-transparent border-lavender-400/30 text-white hover:bg-lavender-400/10"
+                        >
+                          <ArrowLeft className="mr-2 h-4 w-4" />
+                          Voltar para login
+                        </Button>
+                      </Link>
                     )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-white">Email</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="seu-email@exemplo.com" 
-                            className="bg-teal-700/50 text-white border-lavender-400/30 placeholder:text-white/50"
-                            {...field} 
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
+                    
+                    {currentStep < totalSteps ? (
+                      <Button
+                        type="button"
+                        onClick={nextStep}
+                        className="bg-lavender-400 hover:bg-lavender-500 text-teal-900 font-medium"
+                      >
+                        Próximo
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Button>
+                    ) : (
+                      <Button
+                        type="submit"
+                        className="bg-lavender-400 hover:bg-lavender-500 text-teal-900 font-medium"
+                      >
+                        Finalizar cadastro
+                      </Button>
                     )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="password"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-white">Senha</FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            <Input 
-                              type={showPassword ? "text" : "password"}
-                              placeholder="********" 
-                              className="bg-teal-700/50 text-white border-lavender-400/30 placeholder:text-white/50"
-                              {...field} 
-                            />
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              className="absolute right-0 top-0 h-full text-white/70 hover:text-white hover:bg-transparent"
-                              onClick={() => setShowPassword(!showPassword)}
-                            >
-                              {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                            </Button>
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="specialty"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-white">Principal Especialidade</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="Ex: Terapia Cognitivo-Comportamental" 
-                            className="bg-teal-700/50 text-white border-lavender-400/30 placeholder:text-white/50"
-                            {...field} 
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <Button 
-                    type="submit" 
-                    className="w-full bg-lavender-400 hover:bg-lavender-500 text-teal-900 font-medium"
-                  >
-                    Cadastrar
-                  </Button>
-                </form>
-              </Form>
+                  </div>
+                )}
+              </form>
               
-              <div className="mt-6 text-center">
-                <p className="text-white/70">
-                  Já tem uma conta?{" "}
+              {!formSubmitted && (
+                <div className="mt-6 text-center">
+                  <p className="text-white/70">
+                    Já tem uma conta?{" "}
+                    <Link 
+                      to="/login-terapeuta" 
+                      className="text-lavender-300 hover:text-lavender-400 font-medium"
+                    >
+                      Faça login
+                    </Link>
+                  </p>
                   <Link 
-                    to="/login-terapeuta" 
-                    className="text-lavender-300 hover:text-lavender-400 font-medium"
+                    to="/register-cliente" 
+                    className="block mt-3 text-white/70 hover:text-lavender-300 text-sm"
                   >
-                    Faça login
+                    Cadastrar como cliente
                   </Link>
-                </p>
-                <Link 
-                  to="/register-cliente" 
-                  className="block mt-3 text-white/70 hover:text-lavender-300 text-sm"
-                >
-                  Cadastrar como cliente
-                </Link>
-              </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
