@@ -1,3 +1,4 @@
+
 import { useParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -5,6 +6,8 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Star, Check, Briefcase, Clock, Calendar } from "lucide-react";
 import ScheduleAppointmentDialog from "@/components/appointments/ScheduleAppointmentDialog";
+import EditProfileDialog from "@/components/specialists/EditProfileDialog";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Sample therapist data - in a real app this would come from an API or database
 const therapistData = {
@@ -74,8 +77,13 @@ const therapistData = {
 
 const SpecialistDetail = () => {
   const { id } = useParams();
+  const { user } = useAuth();
+  
   // In a real app, we would fetch the therapist data based on the id
   const therapist = therapistData;
+  
+  // Check if the logged-in user is the owner of this profile
+  const isProfileOwner = user && user.id === therapist.id;
   
   return (
     <div className="min-h-screen bg-teal-900 text-white">
@@ -90,52 +98,74 @@ const SpecialistDetail = () => {
           />
         </div>
         
-        {/* Profile Header */}
+        {/* Profile Header - Updated to match the style from specialists listing */}
         <div className="max-w-5xl mx-auto px-6 md:px-10 -mt-16 relative z-10">
-          <div className="flex flex-col md:flex-row items-start md:items-end gap-6">
-            <img 
-              src={therapist.avatar} 
-              alt={therapist.name} 
-              className="w-32 h-32 rounded-full border-4 border-lavender-400 object-cover"
-            />
-            
-            <div className="flex-grow">
-              <h1 className="text-3xl font-bold text-white">{therapist.name}</h1>
-              <p className="text-lavender-300 text-lg">{therapist.title}</p>
-              
-              <div className="mt-2 flex flex-wrap gap-2">
-                {therapist.specializations.slice(0, 3).map((spec, index) => (
-                  <span 
-                    key={index}
-                    className="bg-lavender-400/20 text-lavender-300 text-xs px-2 py-1 rounded-full"
-                  >
-                    {spec}
-                  </span>
-                ))}
-                {therapist.specializations.length > 3 && (
-                  <span className="text-lavender-300 text-xs">
-                    +{therapist.specializations.length - 3}
-                  </span>
-                )}
-              </div>
-            </div>
-            
-            <div className="flex flex-col items-end mt-4 md:mt-0">
-              <div className="flex items-center mb-2">
-                <div className="flex">
-                  {[...Array(5)].map((_, i) => (
-                    <Star 
-                      key={i}
-                      className={`h-4 w-4 ${i < Math.floor(therapist.rating) ? 'text-lavender-400 fill-lavender-400' : 'text-gray-400'}`}
+          <Card className="bg-teal-800/40 backdrop-blur-sm border-lavender-400/20 overflow-hidden animate-fade-in hover:scale-[1.01] transition-transform duration-300">
+            <CardContent className="p-0">
+              <div className="p-6">
+                <div className="flex flex-col md:flex-row justify-between">
+                  <div className="flex items-start gap-4">
+                    <img 
+                      src={therapist.avatar} 
+                      alt={therapist.name} 
+                      className="w-20 h-20 rounded-full border-2 border-lavender-400 object-cover"
                     />
-                  ))}
+                    
+                    <div>
+                      <h1 className="text-2xl font-bold text-white">{therapist.name}</h1>
+                      <p className="text-lavender-300">{therapist.title} • {therapist.specialty}</p>
+                      
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {therapist.specializations.slice(0, 3).map((spec, index) => (
+                          <span 
+                            key={index}
+                            className="bg-lavender-400/20 text-lavender-300 text-xs px-2 py-1 rounded-full"
+                          >
+                            {spec}
+                          </span>
+                        ))}
+                        {therapist.specializations.length > 3 && (
+                          <span className="text-lavender-300 text-xs">
+                            +{therapist.specializations.length - 3}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex flex-col mt-4 md:mt-0 md:items-end">
+                    <div className="flex items-center mb-2">
+                      <div className="flex">
+                        {[...Array(5)].map((_, i) => (
+                          <Star 
+                            key={i}
+                            className={`h-4 w-4 ${i < Math.floor(therapist.rating) ? 'text-lavender-400 fill-lavender-400' : 'text-gray-400'}`}
+                          />
+                        ))}
+                      </div>
+                      <span className="ml-2 text-white/90 text-sm">{therapist.rating} ({therapist.reviews} avaliações)</span>
+                    </div>
+                    
+                    <span className="text-white font-medium text-lg mb-3">R$ {therapist.price}/sessão</span>
+                    
+                    {/* Edit Profile Button - Only visible to the profile owner */}
+                    <EditProfileDialog 
+                      therapistId={therapist.id} 
+                      therapistData={{
+                        name: therapist.name,
+                        bio: therapist.bio,
+                        approach: therapist.approach,
+                        price: therapist.price,
+                        specializations: therapist.specializations,
+                        avatar: therapist.avatar
+                      }} 
+                      canEdit={isProfileOwner}
+                    />
+                  </div>
                 </div>
-                <span className="ml-2 text-white/90 text-sm">{therapist.rating} ({therapist.reviews} avaliações)</span>
               </div>
-              
-              <span className="text-white font-medium text-lg">R$ {therapist.price}/sessão</span>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
         
         {/* Content Tabs */}
