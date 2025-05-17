@@ -11,11 +11,21 @@ import TherapistProfile from "@/components/dashboard/TherapistProfile";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
+// Interface para dados do perfil
+interface TherapistProfileData {
+  bio: string;
+  price: number;
+  avatar: string;
+  title: string;
+  specializations?: string[];
+}
+
 const TherapistDashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const firstName = user?.user_metadata?.first_name || "Terapeuta";
   const [isProfileComplete, setIsProfileComplete] = useState(true);
+  const [profileData, setProfileData] = useState<TherapistProfileData | null>(null);
   
   // Mock upcoming appointments data
   const upcomingAppointments = [
@@ -48,43 +58,63 @@ const TherapistDashboard = () => {
   };
   
   useEffect(() => {
-    const checkProfileCompleteness = async () => {
+    const fetchProfileData = async () => {
       if (!user) return;
       
       try {
-        const { data, error } = await supabase
+        // Buscar perfil do terapeuta
+        const { data: profileData, error: profileError } = await supabase
           .from('therapist_profiles')
-          .select('bio, price, avatar, title')
+          .select('*')
           .eq('id', user.id)
           .single();
           
-        if (error && error.code !== 'PGRST116') {
-          console.error("Erro ao verificar perfil:", error);
+        if (profileError && profileError.code !== 'PGRST116') {
+          console.error("Erro ao verificar perfil:", profileError);
           return;
         }
         
-        // Verificar se o perfil está completo o suficiente
-        const incomplete = !data || 
-                          !data.bio || 
-                          data.price === 0 || 
-                          !data.avatar ||
-                          !data.title;
+        // Buscar especialidades
+        const { data: specializationsData, error: specializationsError } = await supabase
+          .from('therapist_specializations')
+          .select('specialization')
+          .eq('therapist_id', user.id);
+          
+        if (specializationsError) {
+          console.error("Erro ao buscar especialidades:", specializationsError);
+        }
         
-        setIsProfileComplete(!incomplete);
+        const specializations = specializationsData?.map(item => item.specialization) || [];
         
-        if (incomplete) {
-          toast({
-            title: "Perfil incompleto",
-            description: "Complete seu perfil para melhorar sua visibilidade na plataforma.",
-            duration: 6000,
+        if (profileData) {
+          setProfileData({
+            ...profileData,
+            specializations
           });
+          
+          // Verificar se o perfil está completo o suficiente para aparecer na listagem pública
+          const incomplete = !profileData.bio || 
+                             profileData.price === 0 || 
+                             !profileData.avatar ||
+                             !profileData.title || 
+                             specializations.length === 0;
+          
+          setIsProfileComplete(!incomplete);
+          
+          if (incomplete) {
+            toast({
+              title: "Perfil incompleto",
+              description: "Complete seu perfil para melhorar sua visibilidade na plataforma e aparecer na listagem pública.",
+              duration: 6000,
+            });
+          }
         }
       } catch (error) {
         console.error("Erro ao verificar perfil:", error);
       }
     };
     
-    checkProfileCompleteness();
+    fetchProfileData();
   }, [user, toast]);
   
   return (
@@ -104,7 +134,7 @@ const TherapistDashboard = () => {
                 <Card className="bg-amber-600/30 backdrop-blur-sm border-amber-400/30">
                   <CardContent className="p-4 flex items-center justify-between">
                     <p className="text-white">
-                      Seu perfil está incompleto. Para aparecer na listagem pública, preencha todos os campos obrigatórios.
+                      Seu perfil está incompleto. Para aparecer na listagem pública, preencha todos os campos obrigatórios: título profissional, biografia, valor da sessão, foto de perfil e especialidades.
                     </p>
                   </CardContent>
                 </Card>

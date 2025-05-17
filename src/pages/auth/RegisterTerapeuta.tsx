@@ -111,16 +111,17 @@ export default function RegisterTerapeuta() {
       if (authError) throw authError;
       
       if (authData.user) {
-        // 2. Criar perfil do terapeuta
+        // 2. Criar perfil do terapeuta com todos os campos importantes
         const { error: profileError } = await supabase.from('therapist_profiles').insert({
           id: authData.user.id,
           name: `${data.firstName} ${data.lastName}`,
           title: data.professionalTitle,
           bio: data.biography,
-          approach: "",  // Vazio por padrão, será preenchido posteriormente
+          approach: "", // Será preenchido posteriormente
           price: parseInt(data.sessionPrice) || 0,
-          avatar: "", // Vazio por padrão, será preenchido posteriormente
-          is_approved: false // Terapeuta precisa ser aprovado por um admin
+          avatar: "", // Será preenchido posteriormente
+          is_approved: false, // Terapeuta precisa ser aprovado por um admin
+          specialty: data.specialties[0] || "" // Principal especialidade (primeira da lista)
         });
         
         if (profileError) throw profileError;

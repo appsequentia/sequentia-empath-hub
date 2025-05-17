@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -16,6 +15,7 @@ interface TherapistWithSpecializations {
   price: number;
   description: string;
   specializations: string[];
+  title: string;
 }
 
 export function FeaturedTherapists() {
@@ -29,6 +29,11 @@ export function FeaturedTherapists() {
           .from('therapist_profiles')
           .select('*')
           .eq('is_approved', true)
+          // Filtrando apenas perfis completos
+          .not('avatar', 'is', null)
+          .not('bio', 'is', null)
+          .not('title', 'is', null)
+          .gt('price', 0)
           .order('rating', { ascending: false })
           .limit(3);
         
@@ -54,15 +59,22 @@ export function FeaturedTherapists() {
               };
             }
             
+            // Se o terapeuta não tiver especializações, não o mostrar
+            const specializations = specData?.map((spec: any) => spec.specialization) || [];
+            if (specializations.length === 0) {
+              return null;
+            }
+            
             return {
               ...therapist,
-              specializations: specData.map((spec: any) => spec.specialization),
+              specializations: specializations,
               description: therapist.bio ? (therapist.bio.length > 100 ? `${therapist.bio.substring(0, 100)}...` : therapist.bio) : ''
             };
           })
         );
 
-        setTherapists(therapistsWithSpecializations);
+        // Filtrar terapeutas nulos (sem especialidades)
+        setTherapists(therapistsWithSpecializations.filter(Boolean) as TherapistWithSpecializations[]);
       } catch (error) {
         console.error("Erro ao buscar dados:", error);
       } finally {
@@ -83,7 +95,8 @@ export function FeaturedTherapists() {
     reviews: 124,
     price: 150,
     description: "Especialista em terapia cognitivo-comportamental com mais de 10 anos de experiência.",
-    specializations: ["Ansiedade", "Depressão", "Estresse"]
+    specializations: ["Ansiedade", "Depressão", "Estresse"],
+    title: "Psicóloga"
   }, {
     id: "2",
     name: "Dr. Rafael Costa",
@@ -93,7 +106,8 @@ export function FeaturedTherapists() {
     reviews: 98,
     price: 180,
     description: "Psicanalista com abordagem focada em traumas e relacionamentos.",
-    specializations: ["Traumas", "Relacionamentos", "Ansiedade"]
+    specializations: ["Traumas", "Relacionamentos", "Ansiedade"],
+    title: "Psicólogo"
   }, {
     id: "3",
     name: "Dra. Camila Santos",
@@ -103,7 +117,8 @@ export function FeaturedTherapists() {
     reviews: 87,
     price: 160,
     description: "Especialista em terapia familiar e relacionamentos interpessoais.",
-    specializations: ["Família", "Relacionamentos", "Comunicação"]
+    specializations: ["Família", "Relacionamentos", "Comunicação"],
+    title: "Psicóloga"
   }];
 
   // Usar os dados de exemplo se não houver terapeutas no banco
@@ -141,7 +156,7 @@ export function FeaturedTherapists() {
                     />
                     <div className="ml-4">
                       <h3 className="text-lg font-medium text-white">{therapist.name}</h3>
-                      <p className="text-lavender-300">{therapist.specialty}</p>
+                      <p className="text-lavender-300">{therapist.title || therapist.specialty}</p>
                     </div>
                   </div>
                   
