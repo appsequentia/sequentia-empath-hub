@@ -2,6 +2,11 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
+import { 
+  Popover,
+  PopoverContent,
+  PopoverTrigger 
+} from "@/components/ui/popover";
 
 export function Hero() {
   return (
@@ -13,6 +18,33 @@ export function Hero() {
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-lavender-400/20 rounded-full blur-3xl opacity-30 pointer-events-none" />
       
       <div className="max-w-7xl mx-auto px-6 md:px-10 relative z-10">
+        {/* "Criar Conta" button for larger screens - positioned absolutely */}
+        <div className="absolute top-0 right-0 hidden md:block z-20">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button className="bg-lavender-400 hover:bg-lavender-500 text-teal-900 font-medium">
+                Criar Conta
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="bg-teal-800 border-lavender-400/30 p-0 w-48">
+              <div className="flex flex-col">
+                <Link 
+                  to="/register-cliente" 
+                  className="text-white hover:bg-lavender-400/20 px-4 py-3 text-sm transition-colors"
+                >
+                  Sou Cliente
+                </Link>
+                <Link 
+                  to="/register-terapeuta"
+                  className="text-white hover:bg-lavender-400/20 px-4 py-3 text-sm transition-colors"
+                >
+                  Sou Terapeuta
+                </Link>
+              </div>
+            </PopoverContent>
+          </Popover>
+        </div>
+
         <div className="grid md:grid-cols-5 gap-10 items-center">
           <div className="md:col-span-3 text-left">
             <h1 className="text-5xl md:text-6xl font-bold text-white leading-tight animate-fade-in">
@@ -24,6 +56,33 @@ export function Hero() {
               inteligente que identifica suas necessidades e recomenda 
               os melhores especialistas para o seu perfil.
             </p>
+            
+            {/* "Criar Conta" button for mobile - displayed inline with other buttons */}
+            <div className="md:hidden mt-10 mb-4 animate-fade-in" style={{ animationDelay: '0.4s' }}>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button className="w-full bg-lavender-400 hover:bg-lavender-500 text-teal-900 font-medium py-6 text-lg">
+                    Criar Conta
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="bg-teal-800 border-lavender-400/30 p-0 w-full">
+                  <div className="flex flex-col">
+                    <Link 
+                      to="/register-cliente" 
+                      className="text-white hover:bg-lavender-400/20 px-4 py-4 text-base transition-colors"
+                    >
+                      Sou Cliente
+                    </Link>
+                    <Link 
+                      to="/register-terapeuta"
+                      className="text-white hover:bg-lavender-400/20 px-4 py-4 text-base transition-colors"
+                    >
+                      Sou Terapeuta
+                    </Link>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
             
             <div className="mt-10 flex flex-col sm:flex-row items-start gap-4 animate-fade-in" style={{ animationDelay: '0.4s' }}>
               <Link to="/assessment/start">
