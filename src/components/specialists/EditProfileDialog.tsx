@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   Dialog,
   DialogContent,
@@ -12,11 +12,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Label } from "@/components/ui/label";
-import { PencilIcon, X } from "lucide-react";
+import { PencilIcon, X, ImageIcon, DollarSign, BadgeIcon, FileText, Briefcase, TagIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
 
 interface EditProfileDialogProps {
   therapistId: string;
@@ -30,31 +34,53 @@ interface EditProfileDialogProps {
     avatar: string;
   };
   canEdit: boolean;
+  inline?: boolean;
 }
 
-const EditProfileDialog = ({ therapistId, therapistData, canEdit }: EditProfileDialogProps) => {
+const profileSchema = z.object({
+  name: z.string().min(3, "Nome precisa ter no mínimo 3 caracteres"),
+  title: z.string().min(3, "Título profissional é obrigatório"),
+  bio: z.string().min(10, "Biografia precisa ter no mínimo 10 caracteres"),
+  approach: z.string().optional(),
+  price: z.coerce.number().min(1, "Valor por sessão precisa ser maior que zero"),
+  avatar: z.string().url("URL da imagem inválida").optional().or(z.literal("")),
+  specializations: z.string()
+});
+
+const EditProfileDialog = ({ therapistId, therapistData, canEdit, inline = false }: EditProfileDialogProps) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [formData, setFormData] = useState({
-    name: therapistData.name,
-    title: therapistData.title,
-    bio: therapistData.bio,
-    approach: therapistData.approach,
-    price: therapistData.price,
-    specializations: therapistData.specializations.join(", "),
-    avatar: therapistData.avatar
-  });
   const [isLoading, setIsLoading] = useState(false);
+  const [newSpecialization, setNewSpecialization] = useState("");
   const { toast } = useToast();
+
+  const form = useForm<z.infer<typeof profileSchema>>({
+    resolver: zodResolver(profileSchema),
+    defaultValues: {
+      name: therapistData.name,
+      title: therapistData.title || "",
+      bio: therapistData.bio || "",
+      approach: therapistData.approach || "",
+      price: therapistData.price,
+      avatar: therapistData.avatar || "",
+      specializations: therapistData.specializations.join(", ")
+    }
+  });
+
+  useEffect(() => {
+    form.reset({
+      name: therapistData.name,
+      title: therapistData.title || "",
+      bio: therapistData.bio || "",
+      approach: therapistData.approach || "",
+      price: therapistData.price,
+      avatar: therapistData.avatar || "",
+      specializations: therapistData.specializations.join(", ")
+    });
+  }, [therapistData, form]);
 
   if (!canEdit) return null;
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (values: z.infer<typeof profileSchema>) => {
     setIsLoading(true);
     
     try {
@@ -62,19 +88,19 @@ const EditProfileDialog = ({ therapistId, therapistData, canEdit }: EditProfileD
       const { error: profileError } = await supabase
         .from('therapist_profiles')
         .update({
-          name: formData.name,
-          title: formData.title,
-          bio: formData.bio,
-          approach: formData.approach,
-          price: formData.price,
-          avatar: formData.avatar
+          name: values.name,
+          title: values.title,
+          bio: values.bio,
+          approach: values.approach || "",
+          price: values.price,
+          avatar: values.avatar || ""
         })
         .eq('id', therapistId);
       
       if (profileError) throw profileError;
       
       // Atualizar especialidades
-      const specializations = formData.specializations
+      const specializations = values.specializations
         .split(",")
         .map(spec => spec.trim())
         .filter(spec => spec);
@@ -106,7 +132,9 @@ const EditProfileDialog = ({ therapistId, therapistData, canEdit }: EditProfileD
       });
       
       // Fechar o diálogo após salvar com sucesso
-      setIsOpen(false);
+      if (!inline) {
+        setIsOpen(false);
+      }
       
       // Recarregar a página para refletir as alterações
       window.location.reload();
@@ -123,24 +151,263 @@ const EditProfileDialog = ({ therapistId, therapistData, canEdit }: EditProfileD
     }
   };
 
-  const handleAddSpecialization = (newSpec: string) => {
-    if (!newSpec.trim()) return;
+  const handleAddSpecialization = () => {
+    if (!newSpecialization.trim()) return;
     
-    const currentSpecs = formData.specializations ? 
-      formData.specializations.split(',').map(s => s.trim()).filter(s => s) : 
+    const currentSpecs = form.getValues("specializations");
+    const specsArray = currentSpecs ? 
+      currentSpecs.split(',').map(s => s.trim()).filter(s => s) : 
       [];
     
-    if (!currentSpecs.includes(newSpec.trim())) {
-      const updatedSpecs = [...currentSpecs, newSpec.trim()].join(', ');
-      setFormData(prev => ({ ...prev, specializations: updatedSpecs }));
+    if (!specsArray.includes(newSpecialization.trim())) {
+      const updatedSpecs = [...specsArray, newSpecialization.trim()].join(', ');
+      form.setValue("specializations", updatedSpecs);
     }
+    
+    setNewSpecialization("");
   };
 
   const handleRemoveSpecialization = (specToRemove: string) => {
-    const currentSpecs = formData.specializations.split(',').map(s => s.trim()).filter(s => s);
+    const currentSpecs = form.getValues("specializations").split(',')
+      .map(s => s.trim()).filter(s => s);
     const updatedSpecs = currentSpecs.filter(spec => spec !== specToRemove).join(', ');
-    setFormData(prev => ({ ...prev, specializations: updatedSpecs }));
+    form.setValue("specializations", updatedSpecs);
   };
+
+  const formContent = (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+        <FormField
+          control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-white flex items-center">
+                <BadgeIcon className="h-4 w-4 mr-2 text-lavender-300" />
+                Nome Completo
+              </FormLabel>
+              <FormControl>
+                <Input
+                  {...field}
+                  className="bg-teal-700/40 border-lavender-400/20 text-white"
+                  placeholder="Seu nome completo"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="title"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-white flex items-center">
+                <Briefcase className="h-4 w-4 mr-2 text-lavender-300" />
+                Título Profissional
+              </FormLabel>
+              <FormControl>
+                <Input
+                  {...field}
+                  className="bg-teal-700/40 border-lavender-400/20 text-white"
+                  placeholder="Ex: Psicólogo, Psicoterapeuta, Psicanalista"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <div className="space-y-3">
+          <Label className="text-white flex items-center">
+            <TagIcon className="h-4 w-4 mr-2 text-lavender-300" />
+            Especialidades
+          </Label>
+          
+          <div className="flex gap-2">
+            <Input
+              value={newSpecialization}
+              onChange={(e) => setNewSpecialization(e.target.value)}
+              className="bg-teal-700/40 border-lavender-400/20 text-white flex-1"
+              placeholder="Ex: Ansiedade, Depressão, TDAH"
+            />
+            <Button 
+              type="button" 
+              onClick={handleAddSpecialization}
+              variant="secondary"
+              className="bg-lavender-400/20 hover:bg-lavender-400/30 text-white"
+            >
+              Adicionar
+            </Button>
+          </div>
+          
+          <FormField
+            control={form.control}
+            name="specializations"
+            render={({ field }) => (
+              <FormItem>
+                <FormControl>
+                  <Input 
+                    type="hidden"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          {/* Visualização de especialidades como badges */}
+          {form.watch("specializations") && (
+            <div className="flex flex-wrap gap-2 mt-2">
+              {form.watch("specializations").split(',').map((spec, index) => {
+                const trimmedSpec = spec.trim();
+                if (!trimmedSpec) return null;
+                
+                return (
+                  <Badge 
+                    key={index}
+                    className="bg-lavender-400/20 text-white hover:bg-lavender-400/30 pl-3 pr-2 py-1.5 flex items-center gap-1"
+                  >
+                    {trimmedSpec}
+                    <button 
+                      type="button" 
+                      onClick={() => handleRemoveSpecialization(trimmedSpec)}
+                      className="text-white/70 hover:text-white ml-1"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <FormField
+          control={form.control}
+          name="bio"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-white flex items-center">
+                <FileText className="h-4 w-4 mr-2 text-lavender-300" />
+                Biografia
+              </FormLabel>
+              <FormControl>
+                <Textarea
+                  {...field}
+                  className="bg-teal-700/40 border-lavender-400/20 text-white min-h-32"
+                  placeholder="Descreva sua experiência profissional e abordagem"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="approach"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-white flex items-center">
+                <FileText className="h-4 w-4 mr-2 text-lavender-300" />
+                Abordagem Terapêutica
+              </FormLabel>
+              <FormControl>
+                <Textarea
+                  {...field}
+                  className="bg-teal-700/40 border-lavender-400/20 text-white min-h-24"
+                  placeholder="Descreva sua abordagem terapêutica e métodos"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="price"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-white flex items-center">
+                <DollarSign className="h-4 w-4 mr-2 text-lavender-300" />
+                Valor da Sessão (R$)
+              </FormLabel>
+              <FormControl>
+                <Input
+                  {...field}
+                  type="number"
+                  className="bg-teal-700/40 border-lavender-400/20 text-white"
+                  min="0"
+                  step="5"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="avatar"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-white flex items-center">
+                <ImageIcon className="h-4 w-4 mr-2 text-lavender-300" />
+                URL da Imagem de Perfil
+              </FormLabel>
+              <FormControl>
+                <Input
+                  {...field}
+                  className="bg-teal-700/40 border-lavender-400/20 text-white"
+                  placeholder="https://exemplo.com/imagem.jpg"
+                />
+              </FormControl>
+              <FormMessage />
+              {field.value && (
+                <div className="mt-2 flex justify-center">
+                  <img 
+                    src={field.value} 
+                    alt="Prévia da imagem" 
+                    className="w-20 h-20 rounded-full object-cover border-2 border-lavender-400"
+                    onError={(e) => (e.target as HTMLImageElement).src = "https://via.placeholder.com/150"}
+                  />
+                </div>
+              )}
+            </FormItem>
+          )}
+        />
+
+        <div className="flex justify-end gap-3">
+          {!inline && (
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => setIsOpen(false)}
+              className="bg-transparent border-white/20 text-white hover:bg-white/10"
+              disabled={isLoading}
+            >
+              Cancelar
+            </Button>
+          )}
+          <Button 
+            type="submit"
+            className="bg-lavender-400 hover:bg-lavender-500 text-teal-900"
+            disabled={isLoading}
+          >
+            {isLoading ? "Salvando..." : "Salvar Alterações"}
+          </Button>
+        </div>
+      </form>
+    </Form>
+  );
+
+  if (inline) {
+    return formContent;
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -158,144 +425,7 @@ const EditProfileDialog = ({ therapistId, therapistData, canEdit }: EditProfileD
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6 mt-4">
-          <div className="space-y-2">
-            <Label htmlFor="name" className="text-white">Nome Completo</Label>
-            <Input
-              id="name"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              className="bg-teal-700/40 border-lavender-400/20 text-white"
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="title" className="text-white">Título Profissional</Label>
-            <Input
-              id="title"
-              name="title"
-              value={formData.title}
-              onChange={handleChange}
-              className="bg-teal-700/40 border-lavender-400/20 text-white"
-              placeholder="Ex: Psicólogo, Psicoterapeuta, Psicanalista"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="specializations" className="text-white">Especialidades (separadas por vírgula)</Label>
-            <Input
-              id="specializations"
-              name="specializations"
-              value={formData.specializations}
-              onChange={handleChange}
-              className="bg-teal-700/40 border-lavender-400/20 text-white"
-            />
-            
-            {/* Visualização de especialidades como badges */}
-            {formData.specializations && (
-              <div className="flex flex-wrap gap-2 mt-2">
-                {formData.specializations.split(',').map((spec, index) => {
-                  const trimmedSpec = spec.trim();
-                  if (!trimmedSpec) return null;
-                  
-                  return (
-                    <Badge 
-                      key={index}
-                      className="bg-lavender-400/20 text-white hover:bg-lavender-400/30 pl-3 pr-2 py-1.5 flex items-center gap-1"
-                    >
-                      {trimmedSpec}
-                      <button 
-                        type="button" 
-                        onClick={() => handleRemoveSpecialization(trimmedSpec)}
-                        className="text-white/70 hover:text-white ml-1"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="bio" className="text-white">Biografia</Label>
-            <Textarea
-              id="bio"
-              name="bio"
-              value={formData.bio}
-              onChange={handleChange}
-              className="bg-teal-700/40 border-lavender-400/20 text-white min-h-32"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="approach" className="text-white">Abordagem Terapêutica</Label>
-            <Textarea
-              id="approach"
-              name="approach"
-              value={formData.approach}
-              onChange={handleChange}
-              className="bg-teal-700/40 border-lavender-400/20 text-white min-h-24"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="price" className="text-white">Valor da Sessão (R$)</Label>
-            <Input
-              id="price"
-              name="price"
-              type="number"
-              value={formData.price}
-              onChange={handleChange}
-              className="bg-teal-700/40 border-lavender-400/20 text-white"
-              min="0"
-              step="5"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="avatar" className="text-white">URL da Imagem de Perfil</Label>
-            <Input
-              id="avatar"
-              name="avatar"
-              value={formData.avatar}
-              onChange={handleChange}
-              className="bg-teal-700/40 border-lavender-400/20 text-white"
-              placeholder="https://exemplo.com/imagem.jpg"
-            />
-            {formData.avatar && (
-              <div className="mt-2 flex justify-center">
-                <img 
-                  src={formData.avatar} 
-                  alt="Prévia da imagem" 
-                  className="w-20 h-20 rounded-full object-cover border-2 border-lavender-400"
-                />
-              </div>
-            )}
-          </div>
-
-          <DialogFooter>
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={() => setIsOpen(false)}
-              className="bg-transparent border-white/20 text-white hover:bg-white/10"
-              disabled={isLoading}
-            >
-              Cancelar
-            </Button>
-            <Button 
-              type="submit"
-              className="bg-lavender-400 hover:bg-lavender-500 text-teal-900"
-              disabled={isLoading}
-            >
-              {isLoading ? "Salvando..." : "Salvar Alterações"}
-            </Button>
-          </DialogFooter>
-        </form>
+        {formContent}
       </DialogContent>
     </Dialog>
   );

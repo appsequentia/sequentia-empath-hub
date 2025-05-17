@@ -227,7 +227,7 @@ const SpecialistDetail = () => {
                         therapistId={therapist.id} 
                         therapistData={{
                           name: therapist.name,
-                          title: therapist.title || "", // Fixed: Added the missing title property
+                          title: therapist.title || "",
                           bio: therapist.bio || "",
                           approach: therapist.approach || "",
                           price: therapist.price,
