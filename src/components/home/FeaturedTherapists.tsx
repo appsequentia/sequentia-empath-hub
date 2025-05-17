@@ -75,7 +75,7 @@ export function FeaturedTherapists() {
                   </div>
                   
                   <Link to={`/specialists/${therapist.id}`}>
-                    <Button className="w-full mt-6 text-teal-900 bg-purple-400 hover:bg-purple-300">
+                    <Button className="w-full mt-6 text-teal-900 bg-lavender-600 hover:bg-lavender-500">
                       Ver perfil
                     </Button>
                   </Link>
