@@ -111,7 +111,7 @@ const AssessmentQuestion = () => {
               <span className="text-white/80 text-sm">Questão {currentId} de {totalQuestions}</span>
               <span className="text-lavender-300 text-sm font-medium">{Math.round(progress)}%</span>
             </div>
-            <Progress value={progress} className="h-2 bg-teal-800" indicatorClassName="bg-lavender-400" />
+            <Progress value={progress} className="h-2 bg-teal-800" />
           </div>
           
           <Card className="bg-teal-800/40 backdrop-blur-sm border-lavender-400/20">

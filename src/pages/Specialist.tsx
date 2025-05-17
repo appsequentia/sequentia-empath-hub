@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import { Star, Certificate, Briefcase, Clock, Calendar } from "lucide-react";
+import { Star, Check, Briefcase, Clock, Calendar } from "lucide-react";
 
 // Sample therapist data - in a real app this would come from an API or database
 const therapistData = {
@@ -46,7 +46,7 @@ const therapistData = {
     "Autoestima"
   ],
   languages: ["Português", "Inglês", "Espanhol"],
-  reviews: [
+  reviewsList: [
     {
       name: "Marina L.",
       date: "15/04/2023",
@@ -131,7 +131,7 @@ const SpecialistDetail = () => {
                     />
                   ))}
                 </div>
-                <span className="ml-2 text-white/90 text-sm">{therapist.rating} ({therapist.reviews.length} avaliações)</span>
+                <span className="ml-2 text-white/90 text-sm">{therapist.rating} ({therapist.reviews} avaliações)</span>
               </div>
               
               <span className="text-white font-medium text-lg">R$ {therapist.price}/sessão</span>
@@ -223,7 +223,7 @@ const SpecialistDetail = () => {
               <Card className="bg-teal-800/40 backdrop-blur-sm border-lavender-400/20">
                 <CardContent className="p-6">
                   <h2 className="text-xl font-medium text-white mb-4 flex items-center">
-                    <Certificate className="h-5 w-5 mr-2 text-lavender-400" />
+                    <Check className="h-5 w-5 mr-2 text-lavender-400" />
                     Formação Acadêmica
                   </h2>
                   
@@ -284,7 +284,7 @@ const SpecialistDetail = () => {
                   </div>
                   
                   <div className="space-y-6">
-                    {therapist.reviews.map((review, index) => (
+                    {therapist.reviewsList.map((review, index) => (
                       <div 
                         key={index}
                         className="border-b border-lavender-400/10 pb-6 last:border-0 last:pb-0"
