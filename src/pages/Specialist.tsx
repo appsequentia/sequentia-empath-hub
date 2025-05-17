@@ -1,4 +1,3 @@
-
 import { useParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -228,6 +227,7 @@ const SpecialistDetail = () => {
                         therapistId={therapist.id} 
                         therapistData={{
                           name: therapist.name,
+                          title: therapist.title || "", // Fixed: Added the missing title property
                           bio: therapist.bio || "",
                           approach: therapist.approach || "",
                           price: therapist.price,
