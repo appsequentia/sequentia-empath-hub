@@ -32,7 +32,7 @@ const therapists = [{
   description: "Especialista em terapia familiar e relacionamentos interpessoais."
 }];
 export function FeaturedTherapists() {
-  return <section className="py-16 md:py-24 bg-gray-100">
+  return <section className="py-16 md:py-24 bg-gray-200">
       <div className="max-w-7xl mx-auto px-6 md:px-10 bg-gray-200">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-12">
           <div>
