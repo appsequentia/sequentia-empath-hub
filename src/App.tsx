@@ -18,6 +18,7 @@ import AdminPanel from "./pages/admin/AdminPanel";
 import ClientDashboard from "./pages/dashboard/ClientDashboard";
 import TherapistDashboard from "./pages/dashboard/TherapistDashboard";
 import Pagamento from "./pages/Pagamento";
+import Contact from "./pages/Contact";
 
 const queryClient = new QueryClient();
 
@@ -41,6 +42,7 @@ const App = () => (
           <Route path="/dashboard-cliente" element={<ClientDashboard />} />
           <Route path="/dashboard-terapeuta" element={<TherapistDashboard />} />
           <Route path="/pagamento" element={<Pagamento />} />
+          <Route path="/contato" element={<Contact />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
