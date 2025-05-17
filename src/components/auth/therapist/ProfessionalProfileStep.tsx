@@ -67,6 +67,7 @@ const sessionDurations = [
 
 const ProfessionalProfileStep: React.FC<ProfessionalProfileStepProps> = ({ form }) => {
   const specialties = form.watch("specialties") || [];
+  const hasNoRegistration = form.watch("hasNoRegistration") || false;
   
   const handleAddSpecialty = (specialty: string) => {
     const currentSpecialties = form.getValues("specialties") || [];
@@ -115,16 +116,43 @@ const ProfessionalProfileStep: React.FC<ProfessionalProfileStepProps> = ({ form 
         control={form.control}
         name="registrationNumber"
         render={({ field }) => (
-          <FormItem>
+          <FormItem className={hasNoRegistration ? "hidden" : ""}>
             <FormLabel className="text-white">Número de Registro Profissional</FormLabel>
             <FormControl>
               <Input 
                 placeholder="Ex: CRP 01/12345" 
                 className="bg-teal-700/50 text-white border-lavender-400/30 placeholder:text-white/50"
                 {...field} 
+                disabled={hasNoRegistration}
               />
             </FormControl>
             <FormMessage />
+          </FormItem>
+        )}
+      />
+      
+      <FormField
+        control={form.control}
+        name="hasNoRegistration"
+        render={({ field }) => (
+          <FormItem className="flex flex-row items-center space-x-3 space-y-0 mt-2">
+            <FormControl>
+              <Checkbox
+                checked={field.value}
+                onCheckedChange={(checked) => {
+                  field.onChange(checked);
+                  if (checked) {
+                    form.setValue("registrationNumber", "");
+                  }
+                }}
+                className="data-[state=checked]:bg-lavender-400 data-[state=checked]:border-lavender-400"
+              />
+            </FormControl>
+            <div className="space-y-1 leading-none">
+              <FormLabel className="text-white cursor-pointer">
+                Não possuo registro profissional no momento
+              </FormLabel>
+            </div>
           </FormItem>
         )}
       />

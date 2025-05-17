@@ -28,7 +28,8 @@ const registerSchema = z.object({
   
   // Etapa 2: Perfil Profissional
   professionalTitle: z.string().min(1, "Selecione um título profissional"),
-  registrationNumber: z.string().min(3, "Número de registro inválido"),
+  hasNoRegistration: z.boolean().optional(),
+  registrationNumber: z.string().min(3, "Número de registro inválido").optional(),
   specialties: z.array(z.string()).min(1, "Selecione pelo menos uma especialidade"),
   biography: z.string().min(50, "A biografia deve ter pelo menos 50 caracteres"),
   sessionPrice: z.string().min(1, "Informe o valor da sessão"),
@@ -44,7 +45,16 @@ const registerSchema = z.object({
 }).refine((data) => data.password === data.confirmPassword, {
   message: "As senhas não coincidem",
   path: ["confirmPassword"],
-});
+}).refine(
+  (data) => {
+    // Se não tem registro, ignora a validação. Se tem, verifica se forneceu o número
+    return data.hasNoRegistration === true || (data.registrationNumber && data.registrationNumber.length >= 3);
+  },
+  {
+    message: "Número de registro inválido",
+    path: ["registrationNumber"],
+  }
+);
 
 type RegisterFormValues = z.infer<typeof registerSchema>;
 
@@ -65,6 +75,7 @@ export default function RegisterTerapeuta() {
       cpf: "",
       professionalTitle: "",
       registrationNumber: "",
+      hasNoRegistration: false,
       specialties: [],
       biography: "",
       sessionPrice: "",
@@ -87,7 +98,13 @@ export default function RegisterTerapeuta() {
     if (currentStep === 1) {
       fieldsToValidate = ["firstName", "lastName", "email", "password", "confirmPassword", "phone", "cpf"];
     } else if (currentStep === 2) {
-      fieldsToValidate = ["professionalTitle", "registrationNumber", "specialties", "biography", "sessionPrice", "sessionDuration"];
+      const hasNoRegistration = form.watch("hasNoRegistration");
+      fieldsToValidate = ["professionalTitle", "specialties", "biography", "sessionPrice", "sessionDuration"];
+      
+      // Adiciona validação do número de registro apenas se não marcou a opção "Não possuo registro"
+      if (!hasNoRegistration) {
+        fieldsToValidate.push("registrationNumber");
+      }
     }
     
     // Validar apenas os campos da etapa atual
