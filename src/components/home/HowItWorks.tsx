@@ -21,10 +21,10 @@ export function HowItWorks() {
       
       <div className="max-w-7xl mx-auto px-6 md:px-10">
         <div className="text-center max-w-2xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold text-white">
-            Como <span className="text-lavender-400">funciona</span>
+          <h2 className="text-3xl md:text-4xl font-bold text-slate-800">
+            Como <span className="text-lavender-600">funciona</span>
           </h2>
-          <p className="mt-4 text-white/80">
+          <p className="mt-4 text-slate-800">
             Um processo simples e eficaz para conectar você ao terapeuta ideal
           </p>
         </div>
