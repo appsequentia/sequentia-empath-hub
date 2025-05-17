@@ -1,5 +1,6 @@
 
-import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -7,29 +8,83 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Star } from "lucide-react";
 
-// Sample data for therapist recommendations
-const recommendedTherapists = [
+// Definição das mensagens por faixa de pontuação
+const scoreMessages = [
+  {
+    range: [0, 5],
+    title: "Estabilidade Emocional",
+    message: "Você parece emocionalmente estável neste momento. Pode explorar terapias de autoconhecimento ou apoio leve.",
+    therapies: ["Coaching de Vida", "Mindfulness", "Terapia Breve"]
+  },
+  {
+    range: [6, 10],
+    title: "Desafios Emocionais Moderados",
+    message: "Você pode estar enfrentando desafios emocionais moderados. Recomendamos acompanhamento terapêutico com abordagem integrativa.",
+    therapies: ["Terapia Humanista", "Terapia Sistêmica", "Terapia Cognitivo-Comportamental"]
+  },
+  {
+    range: [11, 16],
+    title: "Alta Sobrecarga Emocional",
+    message: "Identificamos sinais de alta sobrecarga emocional. Indicamos terapias focadas em ansiedade, estresse ou depressão.",
+    therapies: ["Terapia Cognitivo-Comportamental", "Psicanálise", "Terapia Integrativa"]
+  }
+];
+
+// Dados das abordagens terapêuticas
+const therapyApproaches = {
+  "Terapia Cognitivo-Comportamental": {
+    description: "Foca na identificação e mudança de padrões de pensamentos negativos e comportamentos disfuncionais. Eficaz para ansiedade, depressão e estresse.",
+    timeFrame: "Resultados em 12-16 sessões",
+    focus: "Pensamentos e comportamentos"
+  },
+  "Psicanálise": {
+    description: "Explora o inconsciente e como experiências passadas influenciam o comportamento atual. Ajuda a compreender padrões emocionais profundos.",
+    timeFrame: "Terapia de longo prazo",
+    focus: "Inconsciente e experiências passadas"
+  },
+  "Terapia Humanista": {
+    description: "Centralizada no potencial de crescimento pessoal, autoconhecimento e aceitação. Incentiva a expressão autêntica e autonomia.",
+    timeFrame: "Resultados em 6 meses a 1 ano",
+    focus: "Autoconhecimento e potencial humano"
+  },
+  "Terapia Sistêmica": {
+    description: "Analisa como os sistemas familiares e sociais afetam o indivíduo. Ideal para questões relacionais e familiares.",
+    timeFrame: "Resultados em 4-6 meses",
+    focus: "Dinâmicas relacionais"
+  },
+  "Mindfulness": {
+    description: "Integra técnicas de meditação e atenção plena para reduzir estresse e ansiedade, promovendo bem-estar emocional.",
+    timeFrame: "Benefícios em 8 semanas",
+    focus: "Atenção plena e momento presente"
+  },
+  "Terapia Breve": {
+    description: "Abordagem focada e de curta duração para questões específicas, com objetivos claros e prazo definido.",
+    timeFrame: "5-10 sessões",
+    focus: "Soluções e resultados rápidos"
+  },
+  "Coaching de Vida": {
+    description: "Foca no desenvolvimento pessoal e alcance de objetivos específicos, promovendo autoconhecimento e crescimento.",
+    timeFrame: "3-6 meses",
+    focus: "Metas e autodesenvolvimento"
+  },
+  "Terapia Integrativa": {
+    description: "Combina diferentes abordagens terapêuticas de acordo com as necessidades individuais do paciente.",
+    timeFrame: "Personalizado",
+    focus: "Integração de múltiplas técnicas"
+  }
+};
+
+// Lista completa de terapeutas
+const allTherapists = [
   {
     id: "1",
     name: "Dra. Sofia Mendes",
-    specialty: "Psicologia Cognitiva",
+    specialty: "Terapia Cognitivo-Comportamental",
     avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&q=80",
     rating: 4.9,
     reviews: 124,
     price: 150,
-    matchScore: 95,
-    approach: "Terapia Cognitivo-Comportamental"
-  },
-  {
-    id: "3",
-    name: "Dra. Camila Santos",
-    specialty: "Terapia Sistêmica",
-    avatar: "https://images.unsplash.com/photo-1607746882042-944635dfe10e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&q=80", 
-    rating: 4.7,
-    reviews: 87,
-    price: 160,
-    matchScore: 88,
-    approach: "Terapia Sistêmica"
+    focus: ["Ansiedade", "Depressão", "Estresse"]
   },
   {
     id: "2",
@@ -39,40 +94,101 @@ const recommendedTherapists = [
     rating: 4.8,
     reviews: 98,
     price: 180,
-    matchScore: 82,
-    approach: "Psicanálise"
-  },
-];
-
-// Sample data for therapy recommendations
-const recommendedTherapies = [
-  {
-    name: "Terapia Cognitivo-Comportamental",
-    score: 94,
-    description: "Ideal para pessoas com ansiedade e padrões de pensamento negativos. Esta abordagem foca na identificação e mudança de pensamentos e comportamentos prejudiciais."
+    focus: ["Traumas", "Autoconhecimento", "Relações interpessoais"]
   },
   {
-    name: "Terapia de Mindfulness",
-    score: 82,
-    description: "Recomendada para gerenciamento de estresse e ansiedade. Esta abordagem utiliza técnicas de atenção plena para ajudar a viver o momento presente com aceitação."
+    id: "3",
+    name: "Dra. Camila Santos",
+    specialty: "Terapia Sistêmica",
+    avatar: "https://images.unsplash.com/photo-1607746882042-944635dfe10e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&q=80", 
+    rating: 4.7,
+    reviews: 87,
+    price: 160,
+    focus: ["Relacionamentos", "Família", "Comunicação"]
   },
   {
-    name: "Terapia Sistêmica",
-    score: 78,
-    description: "Adequada para questões relacionais e familiares. Esta abordagem analisa o indivíduo como parte de sistemas sociais e familiares mais amplos."
+    id: "4",
+    name: "Dr. André Oliveira",
+    specialty: "Terapia Humanista",
+    avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&q=80",
+    rating: 4.9,
+    reviews: 112,
+    price: 170,
+    focus: ["Autoestima", "Propósito de vida", "Desenvolvimento pessoal"]
+  },
+  {
+    id: "5",
+    name: "Dra. Luiza Ferreira",
+    specialty: "Terapia Integrativa",
+    avatar: "https://images.unsplash.com/photo-1580489944761-15a19d654956?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&q=80",
+    rating: 4.8,
+    reviews: 91,
+    price: 190,
+    focus: ["Estresse crônico", "Burnout", "Equilíbrio emocional"]
+  },
+  {
+    id: "6",
+    name: "Dr. Marcos Pereira",
+    specialty: "Mindfulness",
+    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&q=80",
+    rating: 4.6,
+    reviews: 76,
+    price: 140,
+    focus: ["Ansiedade", "Atenção plena", "Qualidade de vida"]
   }
 ];
 
-// Sample emotional assessment results
-const assessmentResults = {
-  anxietyLevel: "Moderado",
-  depressionLevel: "Leve",
-  stressLevel: "Elevado",
-  sleepQuality: "Comprometida",
-  summary: "Seus resultados indicam níveis moderados de ansiedade, com alguns sintomas leves de depressão e níveis elevados de estresse. Sua qualidade de sono está sendo afetada, o que pode estar contribuindo para as suas dificuldades emocionais atuais."
-};
-
 const AssessmentResults = () => {
+  const navigate = useNavigate();
+  const [score, setScore] = useState<number | null>(null);
+  const [messageData, setMessageData] = useState<typeof scoreMessages[0] | null>(null);
+  const [recommendedTherapists, setRecommendedTherapists] = useState<typeof allTherapists>([]);
+  
+  useEffect(() => {
+    // Recuperar pontuação do sessionStorage
+    const storedScore = sessionStorage.getItem("assessmentScore");
+    
+    if (!storedScore) {
+      // Se não houver pontuação, redirecionar para o início da avaliação
+      navigate("/assessment/start");
+      return;
+    }
+    
+    const parsedScore = parseInt(storedScore);
+    setScore(parsedScore);
+    
+    // Encontrar a faixa de pontuação correspondente
+    const matchingMessage = scoreMessages.find(
+      item => parsedScore >= item.range[0] && parsedScore <= item.range[1]
+    );
+    
+    if (matchingMessage) {
+      setMessageData(matchingMessage);
+      
+      // Filtrar terapeutas com base nas terapias recomendadas
+      const filteredTherapists = allTherapists.filter(therapist => 
+        matchingMessage.therapies.includes(therapist.specialty)
+      );
+      
+      // Se não houver terapeutas compatíveis com as terapias recomendadas,
+      // mostrar os 3 primeiros terapeutas da lista completa
+      setRecommendedTherapists(
+        filteredTherapists.length > 0 ? 
+          filteredTherapists.slice(0, 3) : 
+          allTherapists.slice(0, 3)
+      );
+    }
+  }, [navigate]);
+  
+  // Se a pontuação não estiver disponível, mostrar um carregamento
+  if (score === null || messageData === null) {
+    return (
+      <div className="min-h-screen bg-teal-900 text-white flex items-center justify-center">
+        <p>Carregando resultados...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-teal-900 text-white">
       <Header />
@@ -87,27 +203,75 @@ const AssessmentResults = () => {
             </p>
           </div>
           
-          <Tabs defaultValue="therapists" className="space-y-6">
+          {/* Pontuação e Diagnóstico */}
+          <Card className="bg-teal-800/40 backdrop-blur-sm border-lavender-400/20 mb-8">
+            <CardContent className="p-6">
+              <div className="flex flex-col md:flex-row gap-6 items-center md:items-start">
+                <div className="bg-gradient-to-b from-lavender-400 to-lavender-600 w-32 h-32 rounded-full flex items-center justify-center text-teal-900">
+                  <span className="text-4xl font-bold">{score}/16</span>
+                </div>
+                <div className="flex-grow text-center md:text-left">
+                  <h2 className="text-2xl font-semibold text-white mb-2">{messageData.title}</h2>
+                  <p className="text-white/90">{messageData.message}</p>
+                  <div className="bg-teal-700/40 p-4 rounded-md border border-lavender-400/10 mt-4">
+                    <p className="text-white/90 text-sm">
+                      Lembre-se: esta avaliação oferece um panorama inicial da sua saúde emocional,
+                      mas não substitui uma consulta com um profissional qualificado.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Tabs defaultValue="therapies" className="space-y-6">
             <TabsList className="bg-teal-800/40 border-b border-lavender-400/20 p-0 h-auto mx-auto w-full md:w-auto">
-              <TabsTrigger 
-                value="therapists" 
-                className="py-3 px-6 data-[state=active]:bg-lavender-400 data-[state=active]:text-teal-900 rounded-none"
-              >
-                Terapeutas Recomendados
-              </TabsTrigger>
               <TabsTrigger 
                 value="therapies" 
                 className="py-3 px-6 data-[state=active]:bg-lavender-400 data-[state=active]:text-teal-900 rounded-none"
               >
-                Abordagens Terapêuticas
+                Abordagens Recomendadas
               </TabsTrigger>
               <TabsTrigger 
-                value="assessment" 
+                value="therapists" 
                 className="py-3 px-6 data-[state=active]:bg-lavender-400 data-[state=active]:text-teal-900 rounded-none"
               >
-                Avaliação Detalhada
+                Terapeutas Compatíveis
               </TabsTrigger>
             </TabsList>
+            
+            {/* Therapies Tab */}
+            <TabsContent value="therapies" className="mt-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {messageData.therapies.map((therapy) => (
+                  <Card 
+                    key={therapy} 
+                    className="bg-teal-800/40 backdrop-blur-sm border-lavender-400/20"
+                  >
+                    <CardContent className="p-6">
+                      <h3 className="text-xl font-medium text-white mb-3">{therapy}</h3>
+                      <div className="bg-teal-700/40 p-3 rounded-md border border-lavender-400/10 mb-4">
+                        <p className="text-white/90 text-sm">{therapyApproaches[therapy]?.description}</p>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-start gap-2">
+                          <span className="text-lavender-300">•</span>
+                          <p className="text-white/80 text-sm">
+                            <span className="font-medium text-white">Foco:</span> {therapyApproaches[therapy]?.focus}
+                          </p>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <span className="text-lavender-300">•</span>
+                          <p className="text-white/80 text-sm">
+                            <span className="font-medium text-white">Duração:</span> {therapyApproaches[therapy]?.timeFrame}
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </TabsContent>
             
             {/* Therapists Tab */}
             <TabsContent value="therapists" className="mt-6">
@@ -126,7 +290,7 @@ const AssessmentResults = () => {
                             className="w-28 h-28 rounded-full object-cover border-2 border-lavender-400"
                           />
                           <div className="mt-3 bg-lavender-400/20 rounded-full px-3 py-1 text-center">
-                            <span className="text-lavender-300 font-medium text-sm">{therapist.matchScore}% match</span>
+                            <span className="text-lavender-300 font-medium text-sm">Compatível</span>
                           </div>
                         </div>
                         
@@ -151,12 +315,15 @@ const AssessmentResults = () => {
                           
                           <div className="mt-3">
                             <p className="text-white/80 text-sm">
-                              Abordagem: <span className="text-white">{therapist.approach}</span>
+                              Áreas de foco: 
+                              <span className="text-white ml-1">
+                                {therapist.focus.join(", ")}
+                              </span>
                             </p>
                             <div className="bg-teal-700/40 mt-3 p-4 rounded-md border border-lavender-400/10">
                               <p className="text-white/90 text-sm">
-                                Este especialista foi recomendado com base no seu perfil emocional, especialmente 
-                                considerando seus níveis de ansiedade e padrões de pensamento identificados na avaliação.
+                                Este especialista trabalha com {therapist.specialty}, uma abordagem 
+                                recomendada com base no seu perfil emocional atual.
                               </p>
                             </div>
                           </div>
@@ -183,88 +350,15 @@ const AssessmentResults = () => {
                 ))}
               </div>
             </TabsContent>
-            
-            {/* Therapies Tab */}
-            <TabsContent value="therapies" className="mt-6">
-              <Card className="bg-teal-800/40 backdrop-blur-sm border-lavender-400/20">
-                <CardContent className="p-6">
-                  <div className="space-y-6">
-                    <p className="text-white/80">
-                      Com base nas suas respostas, estas são as abordagens terapêuticas mais adequadas para você:
-                    </p>
-                    
-                    {recommendedTherapies.map((therapy, index) => (
-                      <div key={index} className="bg-teal-700/40 p-4 rounded-md border border-lavender-400/10">
-                        <div className="flex items-center justify-between">
-                          <h3 className="text-lg font-medium text-white">{therapy.name}</h3>
-                          <span className="text-lavender-300 font-medium">{therapy.score}% match</span>
-                        </div>
-                        <p className="mt-2 text-white/80 text-sm">{therapy.description}</p>
-                      </div>
-                    ))}
-                    
-                    <div className="bg-lavender-400/10 p-4 rounded-md border border-lavender-400/20 mt-6">
-                      <h3 className="text-lg font-medium text-white">Próximos passos</h3>
-                      <p className="mt-2 text-white/80 text-sm">
-                        Estas abordagens terapêuticas são complementares e podem ser combinadas. Recomendamos iniciar com a abordagem de maior compatibilidade, mas a decisão final deve ser tomada em conjunto com o terapeuta escolhido.
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-            
-            {/* Assessment Tab */}
-            <TabsContent value="assessment" className="mt-6">
-              <Card className="bg-teal-800/40 backdrop-blur-sm border-lavender-400/20">
-                <CardContent className="p-6">
-                  <div className="space-y-6">
-                    <p className="text-white/80">
-                      Aqui está um resumo da sua avaliação emocional:
-                    </p>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="bg-teal-700/40 p-4 rounded-md border border-lavender-400/10">
-                        <h3 className="text-white/80 text-sm mb-1">Nível de Ansiedade</h3>
-                        <p className="text-white text-lg font-medium">{assessmentResults.anxietyLevel}</p>
-                      </div>
-                      
-                      <div className="bg-teal-700/40 p-4 rounded-md border border-lavender-400/10">
-                        <h3 className="text-white/80 text-sm mb-1">Nível de Depressão</h3>
-                        <p className="text-white text-lg font-medium">{assessmentResults.depressionLevel}</p>
-                      </div>
-                      
-                      <div className="bg-teal-700/40 p-4 rounded-md border border-lavender-400/10">
-                        <h3 className="text-white/80 text-sm mb-1">Nível de Estresse</h3>
-                        <p className="text-white text-lg font-medium">{assessmentResults.stressLevel}</p>
-                      </div>
-                      
-                      <div className="bg-teal-700/40 p-4 rounded-md border border-lavender-400/10">
-                        <h3 className="text-white/80 text-sm mb-1">Qualidade do Sono</h3>
-                        <p className="text-white text-lg font-medium">{assessmentResults.sleepQuality}</p>
-                      </div>
-                    </div>
-                    
-                    <div className="bg-lavender-400/10 p-4 rounded-md border border-lavender-400/20">
-                      <h3 className="text-lg font-medium text-white">Resumo</h3>
-                      <p className="mt-2 text-white/80 text-sm">{assessmentResults.summary}</p>
-                    </div>
-                    
-                    <div className="bg-teal-700/40 p-4 rounded-md border border-lavender-400/10">
-                      <h3 className="text-lg font-medium text-white">Observação</h3>
-                      <p className="mt-2 text-white/80 text-sm">
-                        Esta avaliação é apenas um indicativo e não substitui um diagnóstico profissional completo. 
-                        Para um diagnóstico preciso e tratamento adequado, recomendamos consultar um dos especialistas indicados.
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
           </Tabs>
           
-          <div className="mt-8 flex justify-center">
-            <Link to="/signup-client">
+          <div className="mt-8 flex flex-col md:flex-row justify-center gap-4">
+            <Link to="/assessment/start">
+              <Button variant="outline" className="bg-transparent border-lavender-400 text-white hover:bg-lavender-500/20">
+                Refazer avaliação
+              </Button>
+            </Link>
+            <Link to="/register-cliente">
               <Button className="bg-lavender-400 hover:bg-lavender-500 text-teal-900">
                 Criar conta para salvar resultados
               </Button>
