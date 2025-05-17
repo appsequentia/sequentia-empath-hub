@@ -14,6 +14,7 @@ import LoginCliente from "./pages/auth/LoginCliente";
 import RegisterCliente from "./pages/auth/RegisterCliente";
 import LoginTerapeuta from "./pages/auth/LoginTerapeuta";
 import RegisterTerapeuta from "./pages/auth/RegisterTerapeuta";
+import AdminPanel from "./pages/admin/AdminPanel";
 
 const queryClient = new QueryClient();
 
@@ -33,6 +34,7 @@ const App = () => (
           <Route path="/register-cliente" element={<RegisterCliente />} />
           <Route path="/login-terapeuta" element={<LoginTerapeuta />} />
           <Route path="/register-terapeuta" element={<RegisterTerapeuta />} />
+          <Route path="/admin" element={<AdminPanel />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
