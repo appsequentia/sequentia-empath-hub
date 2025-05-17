@@ -37,7 +37,7 @@ export function FeaturedTherapists() {
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-12">
           <div>
             <h2 className="text-3xl md:text-4xl font-bold text-slate-700 my-[20px]">
-              Terapeutas <span className="text-purple-500">destacados</span>
+              Terapeutas <span className="text-lavender-600">destacados</span>
             </h2>
             <p className="mt-2 max-w-xl text-slate-700">
               Profissionais altamente qualificados e bem avaliados pelos clientes
