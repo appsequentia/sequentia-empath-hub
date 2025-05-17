@@ -29,7 +29,7 @@ const registerSchema = z.object({
   // Etapa 2: Perfil Profissional
   professionalTitle: z.string().min(1, "Selecione um título profissional"),
   hasNoRegistration: z.boolean().optional(),
-  registrationNumber: z.string().min(3, "Número de registro inválido").optional(),
+  registrationNumber: z.string().optional(),
   specialties: z.array(z.string()).min(1, "Selecione pelo menos uma especialidade"),
   biography: z.string().min(50, "A biografia deve ter pelo menos 50 caracteres"),
   sessionPrice: z.string().min(1, "Informe o valor da sessão"),
@@ -105,6 +105,8 @@ export default function RegisterTerapeuta() {
       if (!hasNoRegistration) {
         fieldsToValidate.push("registrationNumber");
       }
+    } else if (currentStep === 3) {
+      fieldsToValidate = ["termsAccepted"];
     }
     
     // Validar apenas os campos da etapa atual

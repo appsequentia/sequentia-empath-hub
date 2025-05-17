@@ -19,6 +19,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { X } from "lucide-react";
+import { useEffect } from "react";
 
 interface ProfessionalProfileStepProps {
   form: UseFormReturn<any>;
@@ -69,6 +70,13 @@ const ProfessionalProfileStep: React.FC<ProfessionalProfileStepProps> = ({ form 
   const specialties = form.watch("specialties") || [];
   const hasNoRegistration = form.watch("hasNoRegistration") || false;
   
+  // Effect to handle the hasNoRegistration checkbox
+  useEffect(() => {
+    if (hasNoRegistration) {
+      form.setValue("registrationNumber", "", { shouldValidate: true });
+    }
+  }, [hasNoRegistration, form]);
+  
   const handleAddSpecialty = (specialty: string) => {
     const currentSpecialties = form.getValues("specialties") || [];
     if (currentSpecialties.includes(specialty) || currentSpecialties.length >= 5) return;
@@ -114,28 +122,9 @@ const ProfessionalProfileStep: React.FC<ProfessionalProfileStepProps> = ({ form 
       
       <FormField
         control={form.control}
-        name="registrationNumber"
-        render={({ field }) => (
-          <FormItem className={hasNoRegistration ? "hidden" : ""}>
-            <FormLabel className="text-white">Número de Registro Profissional</FormLabel>
-            <FormControl>
-              <Input 
-                placeholder="Ex: CRP 01/12345" 
-                className="bg-teal-700/50 text-white border-lavender-400/30 placeholder:text-white/50"
-                {...field} 
-                disabled={hasNoRegistration}
-              />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-      
-      <FormField
-        control={form.control}
         name="hasNoRegistration"
         render={({ field }) => (
-          <FormItem className="flex flex-row items-center space-x-3 space-y-0 mt-2">
+          <FormItem className="flex flex-row items-start space-x-3 space-y-0 mt-2">
             <FormControl>
               <Checkbox
                 checked={field.value}
@@ -153,6 +142,25 @@ const ProfessionalProfileStep: React.FC<ProfessionalProfileStepProps> = ({ form 
                 Não possuo registro profissional no momento
               </FormLabel>
             </div>
+          </FormItem>
+        )}
+      />
+      
+      <FormField
+        control={form.control}
+        name="registrationNumber"
+        render={({ field }) => (
+          <FormItem className={hasNoRegistration ? "hidden" : ""}>
+            <FormLabel className="text-white">Número de Registro Profissional</FormLabel>
+            <FormControl>
+              <Input 
+                placeholder="Ex: CRP 01/12345" 
+                className="bg-teal-700/50 text-white border-lavender-400/30 placeholder:text-white/50"
+                {...field} 
+                disabled={hasNoRegistration}
+              />
+            </FormControl>
+            <FormMessage />
           </FormItem>
         )}
       />
