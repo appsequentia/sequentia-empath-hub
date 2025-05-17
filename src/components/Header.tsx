@@ -2,16 +2,25 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Menu } from "lucide-react";
+import { Menu, UserRound, LogOut } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger
 } from "@/components/ui/popover";
+import { useAuth } from "@/contexts/AuthContext";
+import { 
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger 
+} from "@/components/ui/tooltip";
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { user, signOut } = useAuth();
+  const isLoggedIn = !!user;
   
   return (
     <header className="w-full py-4 px-6 md:px-10 bg-teal-800/50 backdrop-blur-sm fixed top-0 z-50">
@@ -36,34 +45,62 @@ export function Header() {
           <Link to="/contato" className="text-white/90 hover:text-lavender-300 transition-colors">
             Contato
           </Link>
-          <Link to="/login-cliente">
-            <Button variant="outline" className="bg-transparent border-lavender-400 text-white hover:bg-lavender-500/20">
-              Entrar
-            </Button>
-          </Link>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button className="bg-lavender-400 hover:bg-lavender-500 text-teal-900 font-medium">
-                Criar Conta
+          
+          {isLoggedIn ? (
+            <div className="flex items-center space-x-3">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="text-white hover:text-lavender-300 transition-colors">
+                      <UserRound className="h-5 w-5" />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent className="bg-teal-800 border-lavender-400/30 text-white">
+                    <p>{user.email}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              <Button 
+                variant="outline" 
+                className="bg-transparent border-red-400/50 text-white hover:bg-red-500/20 flex items-center"
+                onClick={signOut}
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                Sair
               </Button>
-            </PopoverTrigger>
-            <PopoverContent className="bg-teal-800 border-lavender-400/30 p-0 w-48">
-              <div className="flex flex-col">
-                <Link 
-                  to="/register-cliente" 
-                  className="text-white hover:bg-lavender-400/20 px-4 py-3 text-sm transition-colors"
-                >
-                  Criar conta como cliente
-                </Link>
-                <Link 
-                  to="/register-terapeuta"
-                  className="text-white hover:bg-lavender-400/20 px-4 py-3 text-sm transition-colors"
-                >
-                  Criar conta como terapeuta
-                </Link>
-              </div>
-            </PopoverContent>
-          </Popover>
+            </div>
+          ) : (
+            <>
+              <Link to="/login-cliente">
+                <Button variant="outline" className="bg-transparent border-lavender-400 text-white hover:bg-lavender-500/20">
+                  Entrar
+                </Button>
+              </Link>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button className="bg-lavender-400 hover:bg-lavender-500 text-teal-900 font-medium">
+                    Criar Conta
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="bg-teal-800 border-lavender-400/30 p-0 w-48">
+                  <div className="flex flex-col">
+                    <Link 
+                      to="/register-cliente" 
+                      className="text-white hover:bg-lavender-400/20 px-4 py-3 text-sm transition-colors"
+                    >
+                      Criar conta como cliente
+                    </Link>
+                    <Link 
+                      to="/register-terapeuta"
+                      className="text-white hover:bg-lavender-400/20 px-4 py-3 text-sm transition-colors"
+                    >
+                      Criar conta como terapeuta
+                    </Link>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </>
+          )}
         </nav>
 
         {/* Mobile Navigation */}
@@ -104,34 +141,56 @@ export function Header() {
                 >
                   Contato
                 </Link>
-                <Link 
-                  to="/login-cliente" 
-                  className="text-lg p-2 hover:bg-lavender-400/20 rounded-md"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Entrar como cliente
-                </Link>
-                <Link 
-                  to="/login-terapeuta" 
-                  className="text-lg p-2 hover:bg-lavender-400/20 rounded-md"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Entrar como terapeuta
-                </Link>
-                <Link 
-                  to="/signup-cliente" 
-                  className="text-lg p-2 bg-lavender-400 text-teal-900 rounded-md"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Cadastre-se como cliente
-                </Link>
-                <Link 
-                  to="/signup-terapeuta" 
-                  className="text-lg p-2 border border-lavender-400 rounded-md mt-2"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Cadastre-se como terapeuta
-                </Link>
+
+                {isLoggedIn ? (
+                  <>
+                    <div className="text-lg p-2 hover:bg-lavender-400/20 rounded-md flex items-center">
+                      <UserRound className="mr-2 h-5 w-5" />
+                      <span className="text-sm overflow-hidden text-ellipsis">{user.email}</span>
+                    </div>
+                    <button 
+                      className="text-lg p-2 bg-red-500/20 text-white rounded-md flex items-center"
+                      onClick={() => {
+                        signOut();
+                        setIsMenuOpen(false);
+                      }}
+                    >
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Sair
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <Link 
+                      to="/login-cliente" 
+                      className="text-lg p-2 hover:bg-lavender-400/20 rounded-md"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      Entrar como cliente
+                    </Link>
+                    <Link 
+                      to="/login-terapeuta" 
+                      className="text-lg p-2 hover:bg-lavender-400/20 rounded-md"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      Entrar como terapeuta
+                    </Link>
+                    <Link 
+                      to="/signup-cliente" 
+                      className="text-lg p-2 bg-lavender-400 text-teal-900 rounded-md"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      Cadastre-se como cliente
+                    </Link>
+                    <Link 
+                      to="/signup-terapeuta" 
+                      className="text-lg p-2 border border-lavender-400 rounded-md mt-2"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      Cadastre-se como terapeuta
+                    </Link>
+                  </>
+                )}
               </nav>
             </SheetContent>
           </Sheet>
