@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   Dialog,
   DialogContent,
@@ -13,8 +13,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { PencilIcon } from "lucide-react";
+import { PencilIcon, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
 
 interface EditProfileDialogProps {
   therapistId: string;
@@ -39,6 +41,7 @@ const EditProfileDialog = ({ therapistId, therapistData, canEdit }: EditProfileD
     specializations: therapistData.specializations.join(", "),
     avatar: therapistData.avatar
   });
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
   if (!canEdit) return null;
@@ -48,19 +51,88 @@ const EditProfileDialog = ({ therapistId, therapistData, canEdit }: EditProfileD
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
     
-    // Em uma implementação real, aqui enviaria os dados para o backend
-    console.log("Dados do perfil atualizados:", formData);
+    try {
+      // Atualizar perfil do terapeuta
+      const { error: profileError } = await supabase
+        .from('therapist_profiles')
+        .update({
+          name: formData.name,
+          bio: formData.bio,
+          approach: formData.approach,
+          price: formData.price,
+          avatar: formData.avatar
+        })
+        .eq('id', therapistId);
+      
+      if (profileError) throw profileError;
+      
+      // Atualizar especialidades
+      const specializations = formData.specializations
+        .split(",")
+        .map(spec => spec.trim())
+        .filter(spec => spec);
+
+      // Excluir especialidades atuais
+      await supabase
+        .from('therapist_specializations')
+        .delete()
+        .eq('therapist_id', therapistId);
+
+      // Adicionar novas especialidades
+      if (specializations.length > 0) {
+        const { error: specError } = await supabase
+          .from('therapist_specializations')
+          .insert(
+            specializations.map(spec => ({
+              therapist_id: therapistId,
+              specialization: spec
+            }))
+          );
+          
+        if (specError) throw specError;
+      }
+      
+      toast({
+        title: "Perfil atualizado",
+        description: "Suas alterações foram salvas com sucesso.",
+        duration: 3000,
+      });
+      
+      setIsOpen(false);
+    } catch (error) {
+      console.error("Erro ao atualizar perfil:", error);
+      toast({
+        title: "Erro ao atualizar",
+        description: "Ocorreu um erro ao salvar suas alterações.",
+        variant: "destructive",
+        duration: 5000,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAddSpecialization = (newSpec: string) => {
+    if (!newSpec.trim()) return;
     
-    toast({
-      title: "Perfil atualizado",
-      description: "Suas alterações foram salvas com sucesso.",
-      duration: 3000,
-    });
+    const currentSpecs = formData.specializations ? 
+      formData.specializations.split(',').map(s => s.trim()).filter(s => s) : 
+      [];
     
-    setIsOpen(false);
+    if (!currentSpecs.includes(newSpec.trim())) {
+      const updatedSpecs = [...currentSpecs, newSpec.trim()].join(', ');
+      setFormData(prev => ({ ...prev, specializations: updatedSpecs }));
+    }
+  };
+
+  const handleRemoveSpecialization = (specToRemove: string) => {
+    const currentSpecs = formData.specializations.split(',').map(s => s.trim()).filter(s => s);
+    const updatedSpecs = currentSpecs.filter(spec => spec !== specToRemove).join(', ');
+    setFormData(prev => ({ ...prev, specializations: updatedSpecs }));
   };
 
   return (
@@ -101,6 +173,32 @@ const EditProfileDialog = ({ therapistId, therapistData, canEdit }: EditProfileD
               onChange={handleChange}
               className="bg-teal-700/40 border-lavender-400/20 text-white"
             />
+            
+            {/* Visualização de especialidades como badges */}
+            {formData.specializations && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {formData.specializations.split(',').map((spec, index) => {
+                  const trimmedSpec = spec.trim();
+                  if (!trimmedSpec) return null;
+                  
+                  return (
+                    <Badge 
+                      key={index}
+                      className="bg-lavender-400/20 text-white hover:bg-lavender-400/30 pl-3 pr-2 py-1.5 flex items-center gap-1"
+                    >
+                      {trimmedSpec}
+                      <button 
+                        type="button" 
+                        onClick={() => handleRemoveSpecialization(trimmedSpec)}
+                        className="text-white/70 hover:text-white ml-1"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -166,14 +264,16 @@ const EditProfileDialog = ({ therapistId, therapistData, canEdit }: EditProfileD
               variant="outline" 
               onClick={() => setIsOpen(false)}
               className="bg-transparent border-white/20 text-white hover:bg-white/10"
+              disabled={isLoading}
             >
               Cancelar
             </Button>
             <Button 
               type="submit"
               className="bg-lavender-400 hover:bg-lavender-500 text-teal-900"
+              disabled={isLoading}
             >
-              Salvar Alterações
+              {isLoading ? "Salvando..." : "Salvar Alterações"}
             </Button>
           </DialogFooter>
         </form>

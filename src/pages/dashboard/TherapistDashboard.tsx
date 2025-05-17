@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import TherapistAvailabilityManager from "@/components/appointments/TherapistAvailabilityManager";
@@ -8,10 +8,14 @@ import { Calendar, UserCheck, DollarSign, Percent, WalletIcon } from "lucide-rea
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import TherapistProfile from "@/components/dashboard/TherapistProfile";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const TherapistDashboard = () => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const firstName = user?.user_metadata?.first_name || "Terapeuta";
+  const [isProfileComplete, setIsProfileComplete] = useState(true);
   
   // Mock upcoming appointments data
   const upcomingAppointments = [
@@ -43,6 +47,45 @@ const TherapistDashboard = () => {
     liquidValue: 1062.50
   };
   
+  useEffect(() => {
+    const checkProfileCompleteness = async () => {
+      if (!user) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('therapist_profiles')
+          .select('bio, price, avatar')
+          .eq('id', user.id)
+          .single();
+          
+        if (error && error.code !== 'PGRST116') {
+          console.error("Erro ao verificar perfil:", error);
+          return;
+        }
+        
+        // Verificar se o perfil está completo o suficiente
+        const incomplete = !data || 
+                          !data.bio || 
+                          data.price === 0 || 
+                          !data.avatar;
+        
+        setIsProfileComplete(!incomplete);
+        
+        if (incomplete) {
+          toast({
+            title: "Perfil incompleto",
+            description: "Complete seu perfil para melhorar sua visibilidade na plataforma.",
+            duration: 6000,
+          });
+        }
+      } catch (error) {
+        console.error("Erro ao verificar perfil:", error);
+      }
+    };
+    
+    checkProfileCompleteness();
+  }, [user]);
+  
   return (
     <div className="min-h-screen bg-teal-900 text-white">
       <Header />
@@ -55,6 +98,17 @@ const TherapistDashboard = () => {
           
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-8">
+              {/* Alerta de perfil incompleto */}
+              {!isProfileComplete && (
+                <Card className="bg-amber-600/30 backdrop-blur-sm border-amber-400/30">
+                  <CardContent className="p-4 flex items-center justify-between">
+                    <p className="text-white">
+                      Seu perfil está incompleto. Para aparecer na listagem pública, preencha todos os campos obrigatórios.
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+            
               {/* Dashboard Cards */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 <Card className="bg-teal-800/40 backdrop-blur-sm border-lavender-400/20">

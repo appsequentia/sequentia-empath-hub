@@ -36,6 +36,86 @@ export type Database = {
         }
         Relationships: []
       }
+      therapist_profiles: {
+        Row: {
+          approach: string | null
+          avatar: string | null
+          bio: string | null
+          cover: string | null
+          created_at: string
+          id: string
+          is_approved: boolean
+          name: string
+          price: number
+          rating: number | null
+          reviews: number | null
+          specialty: string | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          approach?: string | null
+          avatar?: string | null
+          bio?: string | null
+          cover?: string | null
+          created_at?: string
+          id: string
+          is_approved?: boolean
+          name: string
+          price?: number
+          rating?: number | null
+          reviews?: number | null
+          specialty?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          approach?: string | null
+          avatar?: string | null
+          bio?: string | null
+          cover?: string | null
+          created_at?: string
+          id?: string
+          is_approved?: boolean
+          name?: string
+          price?: number
+          rating?: number | null
+          reviews?: number | null
+          specialty?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      therapist_specializations: {
+        Row: {
+          created_at: string
+          id: string
+          specialization: string
+          therapist_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          specialization: string
+          therapist_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          specialization?: string
+          therapist_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "therapist_specializations_therapist_id_fkey"
+            columns: ["therapist_id"]
+            isOneToOne: false
+            referencedRelation: "therapist_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
