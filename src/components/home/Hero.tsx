@@ -7,6 +7,7 @@ import {
   PopoverContent,
   PopoverTrigger 
 } from "@/components/ui/popover";
+import { DiagnosticPreviewCarousel } from "./DiagnosticPreviewCarousel";
 
 export function Hero() {
   return (
@@ -64,33 +65,7 @@ export function Hero() {
           <div className="md:col-span-2 hidden md:block">
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-tr from-lavender-400/30 to-teal-600/30 rounded-2xl blur-md"></div>
-              <div className="relative bg-teal-800/70 backdrop-blur-sm border border-white/10 rounded-2xl p-6 shadow-xl">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-3 h-3 bg-red-400 rounded-full"></div>
-                  <div className="w-3 h-3 bg-yellow-400 rounded-full"></div>
-                  <div className="w-3 h-3 bg-green-400 rounded-full"></div>
-                  <div className="ml-auto text-xs text-white/70">Sequentia Diagnóstico</div>
-                </div>
-                <div className="space-y-4">
-                  <div className="bg-teal-700/50 p-4 rounded-lg">
-                    <p className="text-white/90">Como você se sente nas situações sociais?</p>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <div className="bg-lavender-400/20 text-white px-3 py-1 rounded-full text-sm">Confortável</div>
-                      <div className="bg-lavender-400 text-teal-900 px-3 py-1 rounded-full text-sm">Ansioso</div>
-                      <div className="bg-lavender-400/20 text-white px-3 py-1 rounded-full text-sm">Indiferente</div>
-                    </div>
-                  </div>
-                  <div className="bg-teal-700/30 p-4 rounded-lg">
-                    <div className="flex justify-between">
-                      <span className="text-xs text-white/70">Progresso</span>
-                      <span className="text-xs text-lavender-300">3 de 10</span>
-                    </div>
-                    <div className="mt-2 w-full bg-teal-700/50 rounded-full h-2">
-                      <div className="bg-lavender-400 h-2 rounded-full" style={{width: "30%"}}></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <DiagnosticPreviewCarousel />
             </div>
           </div>
         </div>
