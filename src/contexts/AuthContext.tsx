@@ -98,7 +98,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       if (data.user) {
-        // Redirecionar para dashboard de acordo com o tipo de usuário
+        try {
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', data.user.id)
+            .single();
+          
+          // Se o usuário for um administrador, redireciona para o painel admin
+          if (profileData && profileData.role === 'admin') {
+            navigate('/admin');
+            return;
+          }
+        } catch (err) {
+          console.error("Erro ao verificar perfil:", err);
+        }
+        
+        // Redirecionamento padrão baseado no tipo de email
         if (email.includes('terapeuta')) {
           navigate('/dashboard-terapeuta');
         } else {

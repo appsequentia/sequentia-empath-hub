@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { z } from "zod";
@@ -79,8 +80,6 @@ export default function RegisterCliente() {
                             placeholder="Seu nome completo" 
                             className="bg-teal-700/50 text-white border-lavender-400/30 placeholder:text-white/50"
                             {...field} 
-                            value={typeof field.value === 'string' ? field.value : field.value?.join(' ') || ''}
-                            onChange={(e) => field.onChange(e.target.value)}
                           />
                         </FormControl>
                         <FormMessage />

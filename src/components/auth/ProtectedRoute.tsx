@@ -1,7 +1,8 @@
 
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -10,9 +11,41 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute = ({ children, allowedRoles = [] }: ProtectedRouteProps) => {
   const { user, isLoading } = useAuth();
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [checkingRole, setCheckingRole] = useState(allowedRoles.length > 0);
 
-  // Se ainda está carregando, pode mostrar um spinner ou tela de carregamento
-  if (isLoading) {
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      if (user && allowedRoles.length > 0) {
+        try {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .single();
+          
+          if (error) {
+            console.error('Erro ao buscar role do usuário:', error);
+            setUserRole(null);
+          } else {
+            setUserRole(data?.role || null);
+          }
+        } catch (err) {
+          console.error('Erro ao verificar permissões:', err);
+          setUserRole(null);
+        } finally {
+          setCheckingRole(false);
+        }
+      } else {
+        setCheckingRole(false);
+      }
+    };
+
+    fetchUserRole();
+  }, [user, allowedRoles]);
+
+  // Se ainda está carregando o usuário ou verificando a role, mostra um spinner
+  if (isLoading || checkingRole) {
     return <div className="flex justify-center items-center min-h-screen">Carregando...</div>;
   }
 
@@ -21,18 +54,12 @@ const ProtectedRoute = ({ children, allowedRoles = [] }: ProtectedRouteProps) =>
     return <Navigate to="/login-cliente" />;
   }
 
-  // Se não houver roles específicas ou se a verificação de roles não for implementada ainda,
-  // permite o acesso (implementação básica)
-  if (allowedRoles.length === 0) {
-    return <>{children}</>;
+  // Se houver roles específicas necessárias e o usuário não tiver uma delas, nega o acesso
+  if (allowedRoles.length > 0 && !allowedRoles.includes(userRole || '')) {
+    return <Navigate to="/" replace />;
   }
 
-  // Para verificação de roles, você precisaria implementar a lógica aqui
-  // Por exemplo, verificar se o usuário tem a role necessária
-  // const userHasRequiredRole = user.roles?.some(role => allowedRoles.includes(role));
-
-  // Temporariamente, permitimos acesso se houver um usuário autenticado
-  // Você pode melhorar isso mais tarde com uma verificação real de roles
+  // Caso contrário, permite o acesso
   return <>{children}</>;
 };
 
