@@ -38,6 +38,8 @@ const TherapistProfile: React.FC = () => {
       
       setIsLoading(true);
       try {
+        console.log("Buscando perfil para usuário ID:", user.id);
+        
         // Buscar perfil básico
         const { data: profileData, error: profileError } = await supabase
           .from('therapist_profiles')
@@ -45,72 +47,89 @@ const TherapistProfile: React.FC = () => {
           .eq('id', user.id)
           .single();
           
-        if (profileError && profileError.code !== 'PGRST116') {
+        if (profileError) {
           console.error("Erro ao buscar perfil:", profileError);
-          return;
-        }
-        
-        // Buscar especialidades
-        const { data: specializationsData, error: specializationsError } = await supabase
-          .from('therapist_specializations')
-          .select('specialization')
-          .eq('therapist_id', user.id);
           
-        if (specializationsError) {
-          console.error("Erro ao buscar especialidades:", specializationsError);
-        }
-        
-        const specializations = specializationsData?.map(item => item.specialization) || [];
-        
-        if (profileData) {
-          setProfileData({
-            ...profileData,
-            specializations
-          });
-        } else {
-          // Criar perfil básico se não existir
-          const fullName = `${firstName} ${lastName}`.trim();
-          const newProfile = {
-            id: user.id,
-            name: fullName || "Novo Terapeuta",
-            title: "",
-            bio: "",
-            approach: "",
-            price: 0,
-            avatar: "",
-            cover: "",
-            specializations: [],
-            rating: 0,
-            reviews: 0
-          };
-          
-          const { error: insertError } = await supabase
-            .from('therapist_profiles')
-            .insert({
-              id: newProfile.id,
-              name: newProfile.name,
+          if (profileError.code === 'PGRST116') {
+            console.log("Perfil não encontrado. Criando um novo...");
+            // Criar perfil básico se não existir
+            const fullName = `${firstName} ${lastName}`.trim();
+            const newProfile = {
+              id: user.id,
+              name: fullName || "Novo Terapeuta",
               title: "",
               bio: "",
               approach: "",
               price: 0,
               avatar: "",
-              cover: ""
-            });
+              cover: "",
+              specializations: [],
+              rating: 0,
+              reviews: 0
+            };
             
-          if (insertError) {
-            console.error("Erro ao criar perfil:", insertError);
+            console.log("Inserindo novo perfil:", newProfile);
+            
+            const { data: insertData, error: insertError } = await supabase
+              .from('therapist_profiles')
+              .insert({
+                id: newProfile.id,
+                name: newProfile.name,
+                title: "",
+                bio: "",
+                approach: "",
+                price: 0,
+                avatar: "",
+                cover: "",
+                is_approved: false // Garantir que novos perfis comecem como não aprovados
+              })
+              .select();
+              
+            if (insertError) {
+              console.error("Erro ao criar perfil:", insertError);
+              toast({
+                title: "Erro ao criar perfil",
+                description: "Não foi possível criar seu perfil. Erro: " + insertError.message,
+                variant: "destructive"
+              });
+              return;
+            } else {
+              console.log("Perfil criado com sucesso:", insertData);
+              setProfileData(newProfile);
+              toast({
+                title: "Perfil criado",
+                description: "Seu perfil foi criado com sucesso. Complete suas informações para aparecer na listagem pública.",
+              });
+            }
+          } else {
+            // Outro erro que não seja "não encontrado"
             toast({
-              title: "Erro ao criar perfil",
-              description: "Não foi possível criar seu perfil. Tente novamente mais tarde.",
+              title: "Erro ao buscar perfil",
+              description: "Ocorreu um erro ao buscar seu perfil. Tente novamente mais tarde.",
               variant: "destructive"
             });
-          } else {
-            setProfileData(newProfile);
-            toast({
-              title: "Perfil criado",
-              description: "Seu perfil foi criado com sucesso. Complete suas informações para aparecer na listagem pública.",
-            });
+            return;
           }
+        } else if (profileData) {
+          console.log("Perfil encontrado:", profileData);
+          
+          // Buscar especialidades
+          const { data: specializationsData, error: specializationsError } = await supabase
+            .from('therapist_specializations')
+            .select('specialization')
+            .eq('therapist_id', user.id);
+            
+          if (specializationsError) {
+            console.error("Erro ao buscar especialidades:", specializationsError);
+          }
+          
+          const specializations = specializationsData?.map(item => item.specialization) || [];
+          console.log("Especialidades encontradas:", specializations);
+          
+          setProfileData({
+            ...profileData,
+            specializations
+          });
         }
       } catch (error) {
         console.error("Erro ao processar dados do perfil:", error);

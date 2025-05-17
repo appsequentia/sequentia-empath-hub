@@ -26,13 +26,27 @@ export function FeaturedTherapists() {
   useEffect(() => {
     const fetchTherapists = async () => {
       try {
+        console.log("Buscando terapeutas destacados...");
+        
+        // Primeiro, vamos tentar encontrar o perfil da Concimar especificamente
+        const { data: concimar, error: concimarError } = await supabase
+          .from('therapist_profiles')
+          .select('*')
+          .ilike('name', '%Concimar%')
+          .limit(1);
+          
+        if (concimarError) {
+          console.error("Erro ao buscar perfil específico:", concimarError);
+        } else {
+          console.log("Resultado da busca por Concimar:", concimar);
+        }
+        
+        // Agora busca todos os terapeutas aprovados
         const { data, error } = await supabase
           .from('therapist_profiles')
           .select('*')
-          .eq('is_approved', true)
-          // Filtrando apenas perfis completos, mas deixando mais flexível para perfis de teste
           .order('rating', { ascending: false })
-          .limit(6);
+          .limit(10);
         
         if (error) {
           console.error("Erro ao buscar terapeutas:", error);
@@ -116,8 +130,20 @@ export function FeaturedTherapists() {
     title: "Psicóloga"
   }];
 
-  // Usar os dados de exemplo se não houver terapeutas no banco
+  // Usar os dados de exemplo apenas se não houver terapeutas no banco
   const displayTherapists = therapists.length > 0 ? therapists : exampleTherapists;
+
+  if (loading) {
+    return (
+      <section className="py-16 md:py-24 bg-gray-200">
+        <div className="max-w-7xl mx-auto px-6 md:px-10 bg-gray-200 text-center">
+          <h2 className="text-3xl md:text-4xl font-bold text-slate-700 my-[20px]">
+            Carregando terapeutas...
+          </h2>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="py-16 md:py-24 bg-gray-200">
@@ -148,6 +174,10 @@ export function FeaturedTherapists() {
                       src={therapist.avatar || "https://via.placeholder.com/200"}
                       alt={therapist.name} 
                       className="w-16 h-16 rounded-full object-cover border-2 border-lavender-400" 
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.src = "https://via.placeholder.com/200";
+                      }}
                     />
                     <div className="ml-4">
                       <h3 className="text-lg font-medium text-white">{therapist.name}</h3>
@@ -155,7 +185,7 @@ export function FeaturedTherapists() {
                     </div>
                   </div>
                   
-                  <p className="mt-4 text-white/80 text-sm">{therapist.description}</p>
+                  <p className="mt-4 text-white/80 text-sm">{therapist.description || "Perfil profissional em construção."}</p>
                   
                   <div className="mt-4 flex items-center justify-between">
                     <div className="flex items-center">

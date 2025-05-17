@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -111,20 +110,30 @@ export default function RegisterTerapeuta() {
       if (authError) throw authError;
       
       if (authData.user) {
-        // 2. Criar perfil do terapeuta com todos os campos importantes
-        const { error: profileError } = await supabase.from('therapist_profiles').insert({
-          id: authData.user.id,
-          name: `${data.firstName} ${data.lastName}`,
-          title: data.professionalTitle,
-          bio: data.biography,
-          approach: "", // Será preenchido posteriormente
-          price: parseInt(data.sessionPrice) || 0,
-          avatar: "", // Será preenchido posteriormente
-          is_approved: false, // Terapeuta precisa ser aprovado por um admin
-          specialty: data.specialties[0] || "" // Principal especialidade (primeira da lista)
-        });
+        console.log("Usuário criado com sucesso:", authData.user);
         
-        if (profileError) throw profileError;
+        // 2. Criar perfil do terapeuta com todos os campos importantes
+        const { data: profileData, error: profileError } = await supabase
+          .from('therapist_profiles')
+          .insert({
+            id: authData.user.id,
+            name: `${data.firstName} ${data.lastName}`,
+            title: data.professionalTitle,
+            bio: data.biography,
+            approach: "", // Será preenchido posteriormente
+            price: parseInt(data.sessionPrice) || 0,
+            avatar: "", // Será preenchido posteriormente
+            is_approved: false, // Terapeuta precisa ser aprovado por um admin
+            specialty: data.specialties[0] || "" // Principal especialidade (primeira da lista)
+          })
+          .select();
+        
+        if (profileError) {
+          console.error("Erro ao criar perfil:", profileError);
+          throw profileError;
+        } else {
+          console.log("Perfil criado com sucesso:", profileData);
+        }
         
         // 3. Adicionar especialidades
         if (data.specialties.length > 0) {
@@ -133,11 +142,17 @@ export default function RegisterTerapeuta() {
             specialization: specialty
           }));
           
-          const { error: specError } = await supabase
+          const { data: specData, error: specError } = await supabase
             .from('therapist_specializations')
-            .insert(specializationsToInsert);
+            .insert(specializationsToInsert)
+            .select();
             
-          if (specError) throw specError;
+          if (specError) {
+            console.error("Erro ao inserir especialidades:", specError);
+            throw specError;
+          } else {
+            console.log("Especialidades inseridas com sucesso:", specData);
+          }
         }
         
         // Sucesso!
