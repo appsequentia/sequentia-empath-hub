@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Label } from "@/components/ui/label";
-import { PencilIcon, X, ImageIcon, DollarSign, BadgeIcon, FileText, Briefcase, TagIcon } from "lucide-react";
+import { PencilIcon, X, ImageIcon, DollarSign, BadgeIcon, FileText, Briefcase, TagIcon, Upload, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
@@ -43,7 +43,7 @@ const profileSchema = z.object({
   bio: z.string().min(10, "Biografia precisa ter no mínimo 10 caracteres"),
   approach: z.string().optional(),
   price: z.coerce.number().min(1, "Valor por sessão precisa ser maior que zero"),
-  avatar: z.string().url("URL da imagem inválida").optional().or(z.literal("")),
+  avatar: z.string().optional(),
   specializations: z.string()
 });
 
@@ -51,6 +51,9 @@ const EditProfileDialog = ({ therapistId, therapistData, canEdit, inline = false
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [newSpecialization, setNewSpecialization] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(therapistData.avatar || null);
+  const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof profileSchema>>({
@@ -76,14 +79,96 @@ const EditProfileDialog = ({ therapistId, therapistData, canEdit, inline = false
       avatar: therapistData.avatar || "",
       specializations: therapistData.specializations.join(", ")
     });
+    setImagePreview(therapistData.avatar || null);
   }, [therapistData, form]);
 
   if (!canEdit) return null;
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    
+    if (!file) return;
+    
+    // Validação simples de tipo e tamanho
+    const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      toast({
+        title: "Formato inválido",
+        description: "Por favor, selecione uma imagem nos formatos JPEG, PNG ou WebP.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Limite de 2MB
+    const maxSize = 2 * 1024 * 1024; 
+    if (file.size > maxSize) {
+      toast({
+        title: "Imagem muito grande",
+        description: "A imagem deve ter no máximo 2MB.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setImageFile(file);
+    
+    // Criar preview da imagem
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setImagePreview(event.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const uploadImage = async (): Promise<string | null> => {
+    if (!imageFile) return form.getValues("avatar");
+    
+    try {
+      setIsUploading(true);
+      
+      // Estrutura do caminho: profile_images/userId/nomeArquivo-timestamp
+      const timestamp = new Date().getTime();
+      const fileExt = imageFile.name.split('.').pop();
+      const filePath = `${therapistId}/${timestamp}.${fileExt}`;
+      
+      // Upload da imagem para o Supabase Storage
+      const { data, error } = await supabase
+        .storage
+        .from('profile_images')
+        .upload(filePath, imageFile);
+      
+      if (error) {
+        throw error;
+      }
+      
+      // Gerar URL pública da imagem
+      const { data: publicUrlData } = supabase
+        .storage
+        .from('profile_images')
+        .getPublicUrl(filePath);
+        
+      return publicUrlData.publicUrl;
+    } catch (error) {
+      console.error("Erro ao fazer upload da imagem:", error);
+      toast({
+        title: "Erro no upload",
+        description: "Não foi possível fazer upload da imagem. Por favor, tente novamente.",
+        variant: "destructive",
+      });
+      return null;
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const handleSubmit = async (values: z.infer<typeof profileSchema>) => {
     setIsLoading(true);
     
     try {
+      // Upload da imagem (se tiver uma nova)
+      const imageUrl = await uploadImage();
+      
       // Atualizar perfil do terapeuta
       const { error: profileError } = await supabase
         .from('therapist_profiles')
@@ -93,7 +178,7 @@ const EditProfileDialog = ({ therapistId, therapistData, canEdit, inline = false
           bio: values.bio,
           approach: values.approach || "",
           price: values.price,
-          avatar: values.avatar || ""
+          avatar: imageUrl || values.avatar || "" // Usar a URL da imagem nova ou manter a atual
         })
         .eq('id', therapistId);
       
@@ -357,26 +442,66 @@ const EditProfileDialog = ({ therapistId, therapistData, canEdit, inline = false
             <FormItem>
               <FormLabel className="text-white flex items-center">
                 <ImageIcon className="h-4 w-4 mr-2 text-lavender-300" />
-                URL da Imagem de Perfil
+                Imagem de Perfil
               </FormLabel>
               <FormControl>
-                <Input
-                  {...field}
-                  className="bg-teal-700/40 border-lavender-400/20 text-white"
-                  placeholder="https://exemplo.com/imagem.jpg"
-                />
+                <div className="flex flex-col items-center space-y-4">
+                  {/* Preview da imagem */}
+                  <div className="relative">
+                    {imagePreview ? (
+                      <div className="w-32 h-32 rounded-full overflow-hidden border-2 border-lavender-400">
+                        <img 
+                          src={imagePreview} 
+                          alt="Preview da imagem" 
+                          className="w-full h-full object-cover"
+                          onError={() => setImagePreview(null)}
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-32 h-32 rounded-full flex items-center justify-center bg-teal-700/50 border-2 border-dashed border-lavender-400/40">
+                        <ImageIcon className="h-12 w-12 text-lavender-400/40" />
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Input para upload de arquivo */}
+                  <div>
+                    <Input
+                      type="hidden"
+                      {...field}
+                    />
+                    <label
+                      htmlFor="imageUpload"
+                      className="cursor-pointer inline-flex items-center justify-center bg-lavender-400 hover:bg-lavender-500 text-teal-900 font-medium rounded-md px-4 py-2"
+                    >
+                      {isUploading ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Enviando...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="h-4 w-4 mr-2" />
+                          {imagePreview ? "Trocar imagem" : "Carregar imagem"}
+                        </>
+                      )}
+                    </label>
+                    <input
+                      id="imageUpload"
+                      type="file"
+                      onChange={handleImageChange}
+                      accept="image/jpeg,image/png,image/jpg,image/webp"
+                      className="hidden"
+                      disabled={isUploading}
+                    />
+                  </div>
+                  
+                  <p className="text-xs text-white/60 text-center">
+                    Formatos suportados: JPEG, PNG, WebP (máximo 2MB)
+                  </p>
+                </div>
               </FormControl>
               <FormMessage />
-              {field.value && (
-                <div className="mt-2 flex justify-center">
-                  <img 
-                    src={field.value} 
-                    alt="Prévia da imagem" 
-                    className="w-20 h-20 rounded-full object-cover border-2 border-lavender-400"
-                    onError={(e) => (e.target as HTMLImageElement).src = "https://via.placeholder.com/150"}
-                  />
-                </div>
-              )}
             </FormItem>
           )}
         />
@@ -388,7 +513,7 @@ const EditProfileDialog = ({ therapistId, therapistData, canEdit, inline = false
               variant="outline" 
               onClick={() => setIsOpen(false)}
               className="bg-transparent border-white/20 text-white hover:bg-white/10"
-              disabled={isLoading}
+              disabled={isLoading || isUploading}
             >
               Cancelar
             </Button>
@@ -396,7 +521,7 @@ const EditProfileDialog = ({ therapistId, therapistData, canEdit, inline = false
           <Button 
             type="submit"
             className="bg-lavender-400 hover:bg-lavender-500 text-teal-900"
-            disabled={isLoading}
+            disabled={isLoading || isUploading}
           >
             {isLoading ? "Salvando..." : "Salvar Alterações"}
           </Button>
