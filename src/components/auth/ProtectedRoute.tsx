@@ -30,8 +30,14 @@ const ProtectedRoute = ({
             .single();
           
           if (error) {
-            console.error('Erro ao buscar role do usuário:', error);
-            setUserRole(null);
+            // Handle the case where profile doesn't exist yet
+            if (error.code === 'PGRST116') { 
+              console.log('User profile not found, treating as default role');
+              setUserRole('user'); // Default role for new users
+            } else {
+              console.error('Erro ao buscar role do usuário:', error);
+              setUserRole(null);
+            }
           } else {
             setUserRole(data?.role || null);
           }
