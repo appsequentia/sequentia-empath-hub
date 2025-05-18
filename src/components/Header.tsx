@@ -16,6 +16,7 @@ import {
   TooltipProvider,
   TooltipTrigger 
 } from "@/components/ui/tooltip";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -47,19 +48,22 @@ export function Header() {
           </Link>
           
           {isLoggedIn ? (
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-4">
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <div className="text-white hover:text-lavender-300 transition-colors">
-                      <UserRound className="h-5 w-5" />
-                    </div>
+                    <Avatar className="h-9 w-9 bg-lavender-400/20 border border-lavender-300/30 hover:bg-lavender-400/30 transition-colors cursor-pointer">
+                      <AvatarFallback className="text-white bg-transparent">
+                        <UserRound className="h-5 w-5" />
+                      </AvatarFallback>
+                    </Avatar>
                   </TooltipTrigger>
                   <TooltipContent className="bg-teal-800 border-lavender-400/30 text-white">
-                    <p>{user.email}</p>
+                    <p>{user?.email}</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
+              
               <Button 
                 variant="outline" 
                 className="bg-transparent border-red-400/50 text-white hover:bg-red-500/20 flex items-center"
@@ -70,7 +74,7 @@ export function Header() {
               </Button>
             </div>
           ) : (
-            <>
+            <div className="flex items-center space-x-4">
               <Link to="/login-cliente">
                 <Button variant="outline" className="bg-transparent border-lavender-400 text-white hover:bg-lavender-500/20">
                   Entrar
@@ -99,7 +103,7 @@ export function Header() {
                   </div>
                 </PopoverContent>
               </Popover>
-            </>
+            </div>
           )}
         </nav>
 
@@ -144,9 +148,13 @@ export function Header() {
 
                 {isLoggedIn ? (
                   <>
-                    <div className="text-lg p-2 hover:bg-lavender-400/20 rounded-md flex items-center">
-                      <UserRound className="mr-2 h-5 w-5" />
-                      <span className="text-sm overflow-hidden text-ellipsis">{user.email}</span>
+                    <div className="text-lg p-2 border-t border-lavender-400/30 pt-4 mt-2 flex items-center">
+                      <Avatar className="h-8 w-8 bg-lavender-400/20 border border-lavender-300/30 mr-3">
+                        <AvatarFallback className="text-white bg-transparent">
+                          <UserRound className="h-4 w-4" />
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-sm overflow-hidden text-ellipsis">{user?.email}</span>
                     </div>
                     <button 
                       className="text-lg p-2 bg-red-500/20 text-white rounded-md flex items-center"
