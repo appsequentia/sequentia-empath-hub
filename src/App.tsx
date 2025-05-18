@@ -1,5 +1,4 @@
 
-import { useEffect } from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import './App.css'
 import { Toaster } from "@/components/ui/toaster";
@@ -22,21 +21,9 @@ import ClientDashboard from '@/pages/dashboard/ClientDashboard';
 import TherapistDashboard from '@/pages/dashboard/TherapistDashboard';
 import NotFound from '@/pages/NotFound';
 import Pagamento from '@/pages/Pagamento';
-import { createTherapistDocumentsBucket } from '@/integrations/supabase/createBucket';
 
 function App() {
-  // Initialize therapy documents bucket on app load - non-blocking
-  useEffect(() => {
-    // Use setTimeout to ensure this doesn't block rendering
-    setTimeout(() => {
-      createTherapistDocumentsBucket().then(success => {
-        console.log("Bucket initialization completed, success:", success);
-      }).catch(err => {
-        console.error("Error during bucket initialization:", err);
-        // App continues to function even if bucket creation fails
-      });
-    }, 0);
-  }, []);
+  // Removido a inicialização do bucket conforme solicitado
 
   return (
     <BrowserRouter>
@@ -55,6 +42,8 @@ function App() {
           <Route path="/admin" element={<AdminPanel />} />
           <Route path="/dashboard/terapeuta" element={<TherapistDashboard />} />
           <Route path="/dashboard/cliente" element={<ClientDashboard />} />
+          <Route path="/dashboard-terapeuta" element={<TherapistDashboard />} />
+          <Route path="/dashboard-cliente" element={<ClientDashboard />} />
           <Route path="/avaliacao" element={<StartAssessment />} />
           <Route path="/avaliacao/pergunta/:id" element={<Question />} />
           <Route path="/avaliacao/resultados" element={<Results />} />
