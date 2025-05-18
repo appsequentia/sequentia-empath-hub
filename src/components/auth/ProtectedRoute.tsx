@@ -38,8 +38,12 @@ const ProtectedRoute = ({
               console.error('Erro ao buscar role do usuário:', error);
               setUserRole(null);
             }
+          } else if (data) {
+            console.log('User role found:', data.role);
+            setUserRole(data.role || 'user'); // Use 'user' as fallback if role is null
           } else {
-            setUserRole(data?.role || null);
+            console.log('No user role data found, using default');
+            setUserRole('user'); // Default if no data returned but no error
           }
         } catch (err) {
           console.error('Erro ao verificar permissões:', err);
@@ -67,10 +71,12 @@ const ProtectedRoute = ({
 
   // Se houver roles específicas necessárias e o usuário não tiver uma delas, nega o acesso
   if (allowedRoles.length > 0 && !allowedRoles.includes(userRole || '')) {
+    console.log(`Access denied: User role ${userRole} not in allowed roles [${allowedRoles.join(', ')}]`);
     return <Navigate to="/" replace />;
   }
 
   // Caso contrário, permite o acesso
+  console.log(`Access granted to user with role: ${userRole}`);
   return <>{children}</>;
 };
 
