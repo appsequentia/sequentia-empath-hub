@@ -3,6 +3,8 @@ import { ReactNode, useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -15,39 +17,20 @@ const ProtectedRoute = ({
   allowedRoles = [], 
   redirectPath = "/login-cliente" 
 }: ProtectedRouteProps) => {
-  const { user, isLoading } = useAuth();
-  const [userRole, setUserRole] = useState<string | null>(null);
-  const [checkingRole, setCheckingRole] = useState(allowedRoles.length > 0);
+  const { user, isLoading, userRole } = useAuth();
+  const [checkingRole, setCheckingRole] = useState(allowedRoles.length > 0 && !userRole);
 
   useEffect(() => {
     const fetchUserRole = async () => {
-      if (user && allowedRoles.length > 0) {
-        try {
-          const { data, error } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', user.id)
-            .single();
-          
-          if (error) {
-            console.error('Erro ao buscar role do usuário:', error);
-            setUserRole(null);
-          } else {
-            setUserRole(data?.role || null);
-          }
-        } catch (err) {
-          console.error('Erro ao verificar permissões:', err);
-          setUserRole(null);
-        } finally {
-          setCheckingRole(false);
-        }
+      if (user && allowedRoles.length > 0 && !userRole) {
+        setCheckingRole(false);
       } else {
         setCheckingRole(false);
       }
     };
 
     fetchUserRole();
-  }, [user, allowedRoles]);
+  }, [user, allowedRoles, userRole]);
 
   // Se ainda está carregando o usuário ou verificando a role, mostra um spinner
   if (isLoading || checkingRole) {
@@ -61,7 +44,17 @@ const ProtectedRoute = ({
 
   // Se houver roles específicas necessárias e o usuário não tiver uma delas, nega o acesso
   if (allowedRoles.length > 0 && !allowedRoles.includes(userRole || '')) {
-    return <Navigate to="/" replace />;
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen p-4">
+        <Alert variant="destructive" className="max-w-md">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Acesso negado</AlertTitle>
+          <AlertDescription>
+            Você não tem permissão para acessar esta página. Esta área é restrita para {allowedRoles.join(', ')}.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
   }
 
   // Caso contrário, permite o acesso

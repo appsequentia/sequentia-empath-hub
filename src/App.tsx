@@ -21,10 +21,9 @@ import ClientDashboard from '@/pages/dashboard/ClientDashboard';
 import TherapistDashboard from '@/pages/dashboard/TherapistDashboard';
 import NotFound from '@/pages/NotFound';
 import Pagamento from '@/pages/Pagamento';
+import ProtectedRoute from '@/components/auth/ProtectedRoute';
 
 function App() {
-  // Removido a inicialização do bucket conforme solicitado
-
   return (
     <BrowserRouter>
       <AuthProvider>
@@ -39,7 +38,11 @@ function App() {
           <Route path="/login-cliente" element={<LoginCliente />} />
           <Route path="/register-terapeuta" element={<RegisterTerapeuta />} />
           <Route path="/register-cliente" element={<RegisterCliente />} />
-          <Route path="/admin" element={<AdminPanel />} />
+          <Route path="/admin" element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <AdminPanel />
+            </ProtectedRoute>
+          } />
           <Route path="/dashboard/terapeuta" element={<TherapistDashboard />} />
           <Route path="/dashboard/cliente" element={<ClientDashboard />} />
           <Route path="/dashboard-terapeuta" element={<TherapistDashboard />} />
