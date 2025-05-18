@@ -19,12 +19,16 @@ export function Header() {
           <Logo />
         </div>
         
-        <div className="flex items-center flex-1">
-          <DesktopNavigation />
-          
-          {!isLoggedIn && <div className="ml-8">
-            <AuthButtons />
-          </div>}
+        <div className="flex-1">
+          <div className="flex items-center">
+            <DesktopNavigation />
+            
+            {!isLoggedIn && 
+              <div className="hidden md:block ml-4">
+                <AuthButtons />
+              </div>
+            }
+          </div>
         </div>
         
         <MobileNavigation isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen} />

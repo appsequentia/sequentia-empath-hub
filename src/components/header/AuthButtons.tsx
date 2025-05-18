@@ -7,13 +7,13 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 export function AuthButtons() {
   return <div className="flex items-center space-x-2">
       <Link to="/login-cliente">
-        <Button variant="outline" className="bg-transparent border-lavender-400 text-white hover:bg-lavender-500/20 mx-1">
+        <Button variant="outline" className="bg-transparent border-lavender-400 text-white hover:bg-lavender-500/20">
           Entrar
         </Button>
       </Link>
       <Popover>
         <PopoverTrigger asChild>
-          <Button className="bg-lavender-400 hover:bg-lavender-500 text-teal-900 font-medium mx-1">
+          <Button className="bg-lavender-400 hover:bg-lavender-500 text-teal-900 font-medium">
             Criar Conta
           </Button>
         </PopoverTrigger>
