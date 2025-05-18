@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -30,101 +29,87 @@ interface TherapistProfileData {
   };
   plan_active?: boolean;
 }
-
 const TherapistDashboard = () => {
-  const { user } = useAuth();
-  const { toast } = useToast();
+  const {
+    user
+  } = useAuth();
+  const {
+    toast
+  } = useToast();
   const firstName = user?.user_metadata?.first_name || "Terapeuta";
   const [isProfileComplete, setIsProfileComplete] = useState(true);
   const [profileData, setProfileData] = useState<TherapistProfileData | null>(null);
   const [activePage, setActivePage] = useState<string>("profile");
-  
+
   // Mock upcoming appointments data
-  const upcomingAppointments = [
-    {
-      id: "1",
-      clientName: "João Silva",
-      date: "2023-05-25",
-      time: "10:00"
-    },
-    {
-      id: "2",
-      clientName: "Maria Oliveira",
-      date: "2023-05-25",
-      time: "14:00"
-    },
-    {
-      id: "3",
-      clientName: "Pedro Santos",
-      date: "2023-05-26",
-      time: "09:00"
-    }
-  ];
+  const upcomingAppointments = [{
+    id: "1",
+    clientName: "João Silva",
+    date: "2023-05-25",
+    time: "10:00"
+  }, {
+    id: "2",
+    clientName: "Maria Oliveira",
+    date: "2023-05-25",
+    time: "14:00"
+  }, {
+    id: "3",
+    clientName: "Pedro Santos",
+    date: "2023-05-26",
+    time: "09:00"
+  }];
 
   // Mock financial data
   const financialData = {
     totalMonth: 1250.00,
     sessionValue: 150.00,
-    platformFee: 15, // percentage
+    platformFee: 15,
+    // percentage
     liquidValue: 1062.50
   };
-  
   useEffect(() => {
     const fetchProfileData = async () => {
       if (!user) return;
-      
       try {
         // Buscar perfil do terapeuta
-        const { data: profileData, error: profileError } = await supabase
-          .from('therapist_profiles')
-          .select('*, therapist_plans!inner(*)')
-          .eq('id', user.id)
-          .single();
-          
+        const {
+          data: profileData,
+          error: profileError
+        } = await supabase.from('therapist_profiles').select('*, therapist_plans!inner(*)').eq('id', user.id).single();
         if (profileError && profileError.code !== 'PGRST116') {
           console.error("Erro ao verificar perfil:", profileError);
           return;
         }
-        
+
         // Buscar especialidades
-        const { data: specializationsData, error: specializationsError } = await supabase
-          .from('therapist_specializations')
-          .select('specialization')
-          .eq('therapist_id', user.id);
-          
+        const {
+          data: specializationsData,
+          error: specializationsError
+        } = await supabase.from('therapist_specializations').select('specialization').eq('therapist_id', user.id);
         if (specializationsError) {
           console.error("Erro ao buscar especialidades:", specializationsError);
         }
-        
         const specializations = specializationsData?.map(item => item.specialization) || [];
-        
         if (profileData) {
           const plan = profileData.therapist_plans ? {
             id: profileData.therapist_plans.id,
             name: profileData.therapist_plans.name,
             max_services: profileData.therapist_plans.max_services
           } : undefined;
-
           setProfileData({
             ...profileData,
             specializations,
             plan
           });
-          
+
           // Verificar se o perfil está completo o suficiente para aparecer na listagem pública
-          const incomplete = !profileData.bio || 
-                             profileData.price === 0 || 
-                             !profileData.avatar ||
-                             !profileData.title || 
-                             specializations.length === 0;
-          
+          const incomplete = !profileData.bio || profileData.price === 0 || !profileData.avatar || !profileData.title || specializations.length === 0;
           setIsProfileComplete(!incomplete);
-          
           if (incomplete) {
             toast({
               title: "Perfil incompleto",
               description: "Complete seu perfil para melhorar sua visibilidade na plataforma e aparecer na listagem pública.",
-              duration: 6000,
+              duration: 6000
             });
           }
         }
@@ -132,12 +117,9 @@ const TherapistDashboard = () => {
         console.error("Erro ao verificar perfil:", error);
       }
     };
-    
     fetchProfileData();
   }, [user, toast]);
-  
-  return (
-    <div className="min-h-screen bg-teal-900 text-white">
+  return <div className="min-h-screen bg-teal-900 text-white">
       <Header />
       <main className="pt-28 pb-16">
         <div className="max-w-5xl mx-auto px-6">
@@ -149,15 +131,13 @@ const TherapistDashboard = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-8">
               {/* Alerta de perfil incompleto */}
-              {!isProfileComplete && (
-                <Card className="bg-amber-600/30 backdrop-blur-sm border-amber-400/30">
+              {!isProfileComplete && <Card className="bg-amber-600/30 backdrop-blur-sm border-amber-400/30">
                   <CardContent className="p-4 flex items-center justify-between">
                     <p className="text-white">
                       Seu perfil está incompleto. Para aparecer na listagem pública, preencha todos os campos obrigatórios: título profissional, biografia, valor da sessão, foto de perfil e especialidades.
                     </p>
                   </CardContent>
-                </Card>
-              )}
+                </Card>}
             
               {/* Dashboard Cards */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -265,15 +245,8 @@ const TherapistDashboard = () => {
                   <CardTitle className="text-white">Próximas Sessões</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {upcomingAppointments.length === 0 ? (
-                    <p className="text-white/70 text-center py-4">Nenhuma sessão agendada.</p>
-                  ) : (
-                    <div className="space-y-3">
-                      {upcomingAppointments.map((appointment) => (
-                        <div 
-                          key={appointment.id} 
-                          className="flex justify-between items-center p-3 bg-teal-700/40 rounded-md"
-                        >
+                  {upcomingAppointments.length === 0 ? <p className="text-white/70 text-center py-4">Nenhuma sessão agendada.</p> : <div className="space-y-3">
+                      {upcomingAppointments.map(appointment => <div key={appointment.id} className="flex justify-between items-center p-3 bg-teal-700/40 rounded-md">
                           <div>
                             <p className="font-medium text-white">{appointment.clientName}</p>
                             <p className="text-sm text-white/70">
@@ -285,10 +258,8 @@ const TherapistDashboard = () => {
                               <Calendar className="h-4 w-4" />
                             </button>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                        </div>)}
+                    </div>}
                 </CardContent>
               </Card>
               
@@ -299,44 +270,28 @@ const TherapistDashboard = () => {
             <div className="space-y-8">
               {/* Perfil e abas de informações */}
               <Card className="bg-teal-800/40 backdrop-blur-sm border-lavender-400/20">
-                <CardHeader>
+                <CardHeader className="my-0 mx-0 px-0">
                   <Tabs defaultValue="profile" className="w-full">
                     <TabsList className="bg-teal-700/40 border-b border-lavender-400/20 p-0 h-auto w-full mb-4">
-                      <TabsTrigger 
-                        value="profile" 
-                        className="py-2 px-4 data-[state=active]:bg-lavender-400 data-[state=active]:text-teal-900 rounded-none"
-                        onClick={() => setActivePage("profile")}
-                      >
+                      <TabsTrigger value="profile" className="py-2 px-4 data-[state=active]:bg-lavender-400 data-[state=active]:text-teal-900 rounded-none" onClick={() => setActivePage("profile")}>
                         <span className="flex items-center gap-1">
                           <UserCheck className="h-4 w-4" />
                           Perfil
                         </span>
                       </TabsTrigger>
-                      <TabsTrigger 
-                        value="education" 
-                        className="py-2 px-4 data-[state=active]:bg-lavender-400 data-[state=active]:text-teal-900 rounded-none"
-                        onClick={() => setActivePage("education")}
-                      >
+                      <TabsTrigger value="education" className="py-2 px-4 data-[state=active]:bg-lavender-400 data-[state=active]:text-teal-900 rounded-none" onClick={() => setActivePage("education")}>
                         <span className="flex items-center gap-1">
                           <BookOpen className="h-4 w-4" />
                           Formação
                         </span>
                       </TabsTrigger>
-                      <TabsTrigger 
-                        value="experience" 
-                        className="py-2 px-4 data-[state=active]:bg-lavender-400 data-[state=active]:text-teal-900 rounded-none"
-                        onClick={() => setActivePage("experience")}
-                      >
+                      <TabsTrigger value="experience" className="py-2 px-4 data-[state=active]:bg-lavender-400 data-[state=active]:text-teal-900 rounded-none" onClick={() => setActivePage("experience")}>
                         <span className="flex items-center gap-1">
                           <Briefcase className="h-4 w-4" />
                           Experiência
                         </span>
                       </TabsTrigger>
-                      <TabsTrigger 
-                        value="services" 
-                        className="py-2 px-4 data-[state=active]:bg-lavender-400 data-[state=active]:text-teal-900 rounded-none"
-                        onClick={() => setActivePage("services")}
-                      >
+                      <TabsTrigger value="services" className="py-2 px-4 data-[state=active]:bg-lavender-400 data-[state=active]:text-teal-900 rounded-none" onClick={() => setActivePage("services")}>
                         <span className="flex items-center gap-1">
                           <ListChecks className="h-4 w-4" />
                           Serviços
@@ -357,12 +312,7 @@ const TherapistDashboard = () => {
                     </TabsContent>
 
                     <TabsContent value="services">
-                      <TherapistServices 
-                        therapistId={user?.id} 
-                        planLimit={profileData?.plan?.max_services || 2}
-                        planName={profileData?.plan?.name || "Básico"}
-                        planActive={profileData?.plan_active !== false}
-                      />
+                      <TherapistServices therapistId={user?.id} planLimit={profileData?.plan?.max_services || 2} planName={profileData?.plan?.name || "Básico"} planActive={profileData?.plan_active !== false} />
                     </TabsContent>
                   </Tabs>
                 </CardHeader>
@@ -375,8 +325,6 @@ const TherapistDashboard = () => {
         </div>
       </main>
       <Footer />
-    </div>
-  );
+    </div>;
 };
-
 export default TherapistDashboard;
