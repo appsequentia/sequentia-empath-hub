@@ -5,7 +5,7 @@ import { AlertCircle } from "lucide-react";
 
 interface FormAlertsProps {
   formError: string | null;
-  bucketReady: boolean;
+  bucketReady: boolean | null;
 }
 
 export const FormAlerts: React.FC<FormAlertsProps> = ({ formError, bucketReady }) => {

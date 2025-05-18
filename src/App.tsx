@@ -25,9 +25,17 @@ import Pagamento from '@/pages/Pagamento';
 import { createTherapistDocumentsBucket } from '@/integrations/supabase/createBucket';
 
 function App() {
-  // Initialize therapy documents bucket on app load
+  // Initialize therapy documents bucket on app load - non-blocking
   useEffect(() => {
-    createTherapistDocumentsBucket();
+    // Use setTimeout to ensure this doesn't block rendering
+    setTimeout(() => {
+      createTherapistDocumentsBucket().then(success => {
+        console.log("Bucket initialization completed, success:", success);
+      }).catch(err => {
+        console.error("Error during bucket initialization:", err);
+        // App continues to function even if bucket creation fails
+      });
+    }, 0);
   }, []);
 
   return (
