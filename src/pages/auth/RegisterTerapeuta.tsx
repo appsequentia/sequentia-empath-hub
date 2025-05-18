@@ -156,10 +156,10 @@ export default function RegisterTerapeuta() {
         throw new Error("O sistema de armazenamento está indisponível no momento. Tente novamente mais tarde.");
       }
       
-      // Check file size (max 5MB)
-      const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+      // Check file size (max 10MB)
+      const maxSize = 10 * 1024 * 1024; // 10MB in bytes
       if (file.size > maxSize) {
-        throw new Error(`O arquivo ${file.name} excede o limite de 5MB.`);
+        throw new Error(`O arquivo ${file.name} excede o limite de 10MB.`);
       }
       
       // Generate unique file name
@@ -167,14 +167,15 @@ export default function RegisterTerapeuta() {
       const fileName = `${Date.now()}.${fileExt}`;
       const filePath = `${path}/${fileName}`;
       
-      console.log("Uploading to:", filePath);
+      console.log("Uploading to:", filePath, "File type:", file.type);
       
       // Upload to Supabase Storage
       const { error: uploadError, data } = await supabase.storage
         .from('therapist_docs')
         .upload(filePath, file, {
           cacheControl: '3600',
-          upsert: false
+          upsert: false,
+          contentType: file.type // Explicitly set the content type
         });
       
       if (uploadError) {
@@ -194,6 +195,7 @@ export default function RegisterTerapeuta() {
       // Verify URL is accessible
       try {
         const checkResponse = await fetch(urlData.publicUrl, { method: 'HEAD' });
+        console.log("File URL check response:", checkResponse.status);
         if (!checkResponse.ok) {
           console.warn("File URL may not be accessible:", checkResponse.status);
         }
@@ -272,8 +274,9 @@ export default function RegisterTerapeuta() {
       
       // Upload profile picture
       if (data.profilePicture && data.profilePicture instanceof File) {
-        console.log("Uploading profile picture");
+        console.log("Uploading profile picture", data.profilePicture);
         try {
+          console.log("Profile picture type:", data.profilePicture.type);
           profilePictureUrl = await uploadFile(
             data.profilePicture, 
             `profile-pics/${authData.user.id}`
@@ -296,8 +299,9 @@ export default function RegisterTerapeuta() {
       
       // Upload certificate
       if (data.certificate && data.certificate instanceof File) {
-        console.log("Uploading certificate");
+        console.log("Uploading certificate", data.certificate);
         try {
+          console.log("Certificate type:", data.certificate.type);
           certificateUrl = await uploadFile(
             data.certificate, 
             `certificates/${authData.user.id}`
@@ -320,8 +324,9 @@ export default function RegisterTerapeuta() {
       
       // Upload ID document
       if (data.idDocument && data.idDocument instanceof File) {
-        console.log("Uploading ID document");
+        console.log("Uploading ID document", data.idDocument);
         try {
+          console.log("ID document type:", data.idDocument.type);
           idDocumentUrl = await uploadFile(
             data.idDocument, 
             `id-docs/${authData.user.id}`
@@ -343,7 +348,19 @@ export default function RegisterTerapeuta() {
       }
       
       // 2. Create therapist profile
-      console.log("Creating therapist profile");
+      console.log("Creating therapist profile with", {
+        id: authData.user.id,
+        name: `${data.firstName} ${data.lastName}`,
+        title: data.professionalTitle,
+        bio: data.biography,
+        approach: data.approach || "",
+        price: parseInt(data.sessionPrice) || parseInt(data.services[0]?.price) || 0,
+        avatar: profilePictureUrl || "",
+        specialty: data.specialties[0] || "",
+        certificate_url: certificateUrl || "",
+        id_document_url: idDocumentUrl || ""
+      });
+      
       const { data: profileData, error: profileError } = await supabase
         .from('therapist_profiles')
         .insert({
@@ -352,7 +369,7 @@ export default function RegisterTerapeuta() {
           title: data.professionalTitle,
           bio: data.biography,
           approach: data.approach || "", 
-          price: parseInt(data.services[0].price) || parseInt(data.sessionPrice) || 0,
+          price: parseInt(data.sessionPrice) || parseInt(data.services[0]?.price) || 0,
           avatar: profilePictureUrl || "", 
           is_approved: false,
           specialty: data.specialties[0] || "",
@@ -363,14 +380,14 @@ export default function RegisterTerapeuta() {
       
       if (profileError) {
         console.error("Error creating profile:", profileError);
-        throw profileError;
+        throw new Error(`Erro ao criar perfil: ${profileError.message}`);
       } else {
         console.log("Profile created successfully:", profileData);
       }
       
       // 3. Add specializations
       if (data.specialties.length > 0) {
-        console.log("Adding specializations");
+        console.log("Adding specializations:", data.specialties);
         const specializationsToInsert = data.specialties.map(specialty => ({
           therapist_id: authData.user.id,
           specialization: specialty
@@ -383,7 +400,12 @@ export default function RegisterTerapeuta() {
           
         if (specError) {
           console.error("Error adding specializations:", specError);
-          throw specError;
+          // Non-blocking error, continue with registration
+          toast({
+            title: "Aviso",
+            description: "Suas especializações não puderam ser salvas. Você poderá adicioná-las mais tarde no painel.",
+            variant: "default"
+          });
         } else {
           console.log("Specializations added successfully:", specData);
         }
@@ -391,7 +413,7 @@ export default function RegisterTerapeuta() {
 
       // 4. Add services/therapies
       if (data.services && data.services.length > 0) {
-        console.log("Adding services");
+        console.log("Adding services:", data.services);
         const servicesToInsert = data.services
           .filter(service => service.name && service.price)
           .map(service => ({
@@ -589,6 +611,7 @@ export default function RegisterTerapeuta() {
                         type="submit"
                         className="bg-lavender-400 hover:bg-lavender-500 text-teal-900 font-medium"
                         disabled={isLoading}
+                        onClick={() => console.log("Submit button clicked", form.getValues())}
                       >
                         {isLoading ? 'Processando...' : 'Finalizar cadastro'}
                       </Button>

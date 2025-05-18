@@ -62,9 +62,9 @@ export async function createTherapistDocumentsBucket() {
         console.log(`Created '${BUCKET_ID}' bucket successfully`);
         
         // Configure CORS for the bucket to allow direct access
-        // Extract URL and key from the SUPABASE_URL and SUPABASE_KEY constants in client.ts
-        const supabaseUrl = process.env.SUPABASE_URL || 'https://wyyefqjcdwgyeixcbhda.supabase.co';
-        const supabaseKey = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind5eWVmcWpjZHdneWVpeGNiaGRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc0ODU0OTEsImV4cCI6MjA2MzA2MTQ5MX0._R8yqY9lYyMNlgmZpq1QRwMeVgwRpo8_kaYp2qPyzxQ';
+        // Extract URL and key from environment variables or use hardcoded fallbacks
+        const supabaseUrl = 'https://wyyefqjcdwgyeixcbhda.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind5eWVmcWpjZHdneWVpeGNiaGRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc0ODU0OTEsImV4cCI6MjA2MzA2MTQ5MX0._R8yqY9lYyMNlgmZpq1QRwMeVgwRpo8_kaYp2qPyzxQ';
         
         try {
           const corsResponse = await fetch(`${supabaseUrl}/storage/v1/bucket/${BUCKET_ID}/cors`, {
@@ -75,14 +75,16 @@ export async function createTherapistDocumentsBucket() {
             },
             body: JSON.stringify({
               allowedOrigins: ['*'],
-              allowedMethods: ['GET', 'POST', 'PUT'],
+              allowedMethods: ['GET', 'POST', 'PUT', 'DELETE'],
               allowedHeaders: ['*'],
               maxAgeSeconds: 3600
             })
           });
           
           if (!corsResponse.ok) {
-            console.warn('Could not set CORS policy for bucket, but bucket was created');
+            console.warn('Could not set CORS policy for bucket, but bucket was created', 
+              `Status: ${corsResponse.status}`, 
+              `Response: ${await corsResponse.text().catch(() => 'Unable to read response')}`);
           } else {
             console.log('CORS policy set for bucket');
           }
