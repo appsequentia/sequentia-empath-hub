@@ -102,7 +102,7 @@ const TherapistDashboard = () => {
             plan
           });
 
-          // Verificar se o perfil está completo o suficiente para aparecer na listagem pública
+          // Verificar se o perfil está completo o suficiente para aparecer na listagem p��blica
           const incomplete = !profileData.bio || profileData.price === 0 || !profileData.avatar || !profileData.title || specializations.length === 0;
           setIsProfileComplete(!incomplete);
           if (incomplete) {
@@ -269,29 +269,29 @@ const TherapistDashboard = () => {
             
             <div className="space-y-8">
               {/* Perfil e abas de informações */}
-              <Card className="bg-teal-800/40 backdrop-blur-sm border-lavender-400/20">
-                <CardHeader className="my-0 mx-0 px-0">
+              <Card className="bg-teal-800/40 backdrop-blur-sm border-lavender-400/20 rounded-2xl shadow-sm overflow-hidden">
+                <CardHeader className="p-0">
                   <Tabs defaultValue="profile" className="w-full">
-                    <TabsList className="bg-teal-700/40 border-b border-lavender-400/20 p-0 h-auto w-full mb-4">
-                      <TabsTrigger value="profile" className="py-2 px-4 data-[state=active]:bg-lavender-400 data-[state=active]:text-teal-900 rounded-none" onClick={() => setActivePage("profile")}>
+                    <TabsList className="sticky top-0 z-10 bg-teal-700/50 border-b border-lavender-400/20 rounded-none w-full">
+                      <TabsTrigger value="profile" onClick={() => setActivePage("profile")}>
                         <span className="flex items-center gap-1">
                           <UserCheck className="h-4 w-4" />
                           Perfil
                         </span>
                       </TabsTrigger>
-                      <TabsTrigger value="education" className="py-2 px-4 data-[state=active]:bg-lavender-400 data-[state=active]:text-teal-900 rounded-none" onClick={() => setActivePage("education")}>
+                      <TabsTrigger value="education" onClick={() => setActivePage("education")}>
                         <span className="flex items-center gap-1">
                           <BookOpen className="h-4 w-4" />
                           Formação
                         </span>
                       </TabsTrigger>
-                      <TabsTrigger value="experience" className="py-2 px-4 data-[state=active]:bg-lavender-400 data-[state=active]:text-teal-900 rounded-none" onClick={() => setActivePage("experience")}>
+                      <TabsTrigger value="experience" onClick={() => setActivePage("experience")}>
                         <span className="flex items-center gap-1">
                           <Briefcase className="h-4 w-4" />
                           Experiência
                         </span>
                       </TabsTrigger>
-                      <TabsTrigger value="services" className="py-2 px-4 data-[state=active]:bg-lavender-400 data-[state=active]:text-teal-900 rounded-none" onClick={() => setActivePage("services")}>
+                      <TabsTrigger value="services" onClick={() => setActivePage("services")}>
                         <span className="flex items-center gap-1">
                           <ListChecks className="h-4 w-4" />
                           Serviços
@@ -299,19 +299,19 @@ const TherapistDashboard = () => {
                       </TabsTrigger>
                     </TabsList>
 
-                    <TabsContent value="profile">
+                    <TabsContent value="profile" className="px-4 pb-4">
                       <TherapistProfile />
                     </TabsContent>
 
-                    <TabsContent value="education">
+                    <TabsContent value="education" className="px-4 pb-4">
                       <TherapistEducation therapistId={user?.id} />
                     </TabsContent>
 
-                    <TabsContent value="experience">
+                    <TabsContent value="experience" className="px-4 pb-4">
                       <TherapistExperience therapistId={user?.id} />
                     </TabsContent>
 
-                    <TabsContent value="services">
+                    <TabsContent value="services" className="px-4 pb-4">
                       <TherapistServices therapistId={user?.id} planLimit={profileData?.plan?.max_services || 2} planName={profileData?.plan?.name || "Básico"} planActive={profileData?.plan_active !== false} />
                     </TabsContent>
                   </Tabs>
