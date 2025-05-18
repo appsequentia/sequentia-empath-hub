@@ -11,7 +11,7 @@ export function AuthButtons() {
       </Link>
       <Popover>
         <PopoverTrigger asChild>
-          <Button className="bg-lavender-400 hover:bg-lavender-500 text-teal-900 font-medium mx-[34px]">
+          <Button className="bg-lavender-400 hover:bg-lavender-500 text-teal-900 font-medium px-[37px] py-0 my-0 mx-[15px]">
             Criar Conta
           </Button>
         </PopoverTrigger>
