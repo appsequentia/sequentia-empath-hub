@@ -33,13 +33,13 @@ export function Header() {
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center space-x-6">
-          <Link to="/about" className="text-white/90 hover:text-lavender-300 transition-colors">
+          <Link to="/sobre" className="text-white/90 hover:text-lavender-300 transition-colors">
             Como funciona
           </Link>
-          <Link to="/specialists" className="text-white/90 hover:text-lavender-300 transition-colors">
+          <Link to="/especialistas" className="text-white/90 hover:text-lavender-300 transition-colors">
             Especialistas
           </Link>
-          <Link to="/therapies" className="text-white/90 hover:text-lavender-300 transition-colors">
+          <Link to="/terapias" className="text-white/90 hover:text-lavender-300 transition-colors">
             Terapias
           </Link>
           <Link to="/contato" className="text-white/90 hover:text-lavender-300 transition-colors">
@@ -114,21 +114,21 @@ export function Header() {
             <SheetContent className="bg-teal-800 text-white border-lavender-400">
               <nav className="flex flex-col space-y-4 mt-8">
                 <Link 
-                  to="/about" 
+                  to="/sobre" 
                   className="text-lg p-2 hover:bg-lavender-400/20 rounded-md"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   Como funciona
                 </Link>
                 <Link 
-                  to="/specialists" 
+                  to="/especialistas" 
                   className="text-lg p-2 hover:bg-lavender-400/20 rounded-md"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   Especialistas
                 </Link>
                 <Link 
-                  to="/therapies" 
+                  to="/terapias" 
                   className="text-lg p-2 hover:bg-lavender-400/20 rounded-md"
                   onClick={() => setIsMenuOpen(false)}
                 >
@@ -176,14 +176,14 @@ export function Header() {
                       Entrar como terapeuta
                     </Link>
                     <Link 
-                      to="/signup-cliente" 
+                      to="/register-cliente" 
                       className="text-lg p-2 bg-lavender-400 text-teal-900 rounded-md"
                       onClick={() => setIsMenuOpen(false)}
                     >
                       Cadastre-se como cliente
                     </Link>
                     <Link 
-                      to="/signup-terapeuta" 
+                      to="/register-terapeuta" 
                       className="text-lg p-2 border border-lavender-400 rounded-md mt-2"
                       onClick={() => setIsMenuOpen(false)}
                     >
