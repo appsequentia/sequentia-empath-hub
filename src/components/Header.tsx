@@ -20,13 +20,13 @@ export function Header() {
           <Logo />
         </div>
         
-        {/* Navigation in the center */}
+        {/* Navigation and auth buttons in the center */}
         <div className="hidden md:flex items-center justify-center flex-1">
-          <div className="flex flex-col items-center">
+          <div className="flex flex-row items-center space-x-8">
             <DesktopNavigation />
             
             {!isLoggedIn && 
-              <div className="mt-0">
+              <div>
                 <AuthButtons />
               </div>
             }
