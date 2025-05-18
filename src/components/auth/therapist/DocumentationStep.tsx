@@ -16,6 +16,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { Alert } from "@/components/ui/alert";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 interface DocumentationStepProps {
   form: UseFormReturn<any>;
@@ -26,6 +27,15 @@ const DocumentationStep: React.FC<DocumentationStepProps> = ({ form }) => {
   const [certificateFile, setCertificateFile] = useState<string | null>(null);
   const [idDocumentFile, setIdDocumentFile] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewType, setPreviewType] = useState<string>("");
+  
+  // Verificar se campos obrigatórios estão preenchidos
+  const profilePicture = form.watch("profilePicture");
+  const certificate = form.watch("certificate");
+  const idDocument = form.watch("idDocument");
+  const termsAccepted = form.watch("termsAccepted");
   
   // Handler para exibir preview de arquivos de imagem
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>, setFile: (url: string | null) => void, fieldName: string) => {
@@ -40,7 +50,8 @@ const DocumentationStep: React.FC<DocumentationStepProps> = ({ form }) => {
     // Verificar tamanho do arquivo (5MB)
     const maxSize = 5 * 1024 * 1024; // 5MB em bytes
     if (file.size > maxSize) {
-      setUploadError(`O arquivo excede o tamanho máximo permitido de 5MB.`);
+      setUploadError(`O arquivo ${file.name} excede o tamanho máximo permitido de 5MB.`);
+      event.target.value = '';
       return;
     }
     
@@ -50,7 +61,8 @@ const DocumentationStep: React.FC<DocumentationStepProps> = ({ form }) => {
       : ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
       
     if (!allowedTypes.includes(file.type)) {
-      setUploadError(`Formato de arquivo não permitido. Use ${fieldName === 'profilePicture' ? 'JPEG/PNG' : 'PDF, JPEG ou PNG'}.`);
+      setUploadError(`Formato de arquivo não permitido para ${file.name}. Use ${fieldName === 'profilePicture' ? 'JPEG/PNG' : 'PDF, JPEG ou PNG'}.`);
+      event.target.value = '';
       return;
     }
     
@@ -88,6 +100,15 @@ const DocumentationStep: React.FC<DocumentationStepProps> = ({ form }) => {
         : 'documento-identidade';
   };
   
+  // Visualizar arquivo em tamanho maior
+  const openPreview = (fileUrl: string | null, type: string) => {
+    if (fileUrl) {
+      setPreviewUrl(fileUrl);
+      setPreviewType(type);
+      setPreviewOpen(true);
+    }
+  };
+  
   return (
     <div className="space-y-6">
       {uploadError && (
@@ -107,9 +128,10 @@ const DocumentationStep: React.FC<DocumentationStepProps> = ({ form }) => {
               <div className="flex flex-col items-center">
                 <div 
                   className={cn(
-                    "w-40 h-40 rounded-full flex items-center justify-center mb-4 overflow-hidden",
+                    "w-40 h-40 rounded-full flex items-center justify-center mb-4 overflow-hidden cursor-pointer",
                     "bg-teal-700/50 border-2 border-dashed border-lavender-400/30"
                   )}
+                  onClick={() => profilePictureFile && openPreview(profilePictureFile, "image")}
                 >
                   {profilePictureFile ? (
                     <img 
@@ -137,7 +159,9 @@ const DocumentationStep: React.FC<DocumentationStepProps> = ({ form }) => {
                   accept="image/*"
                   onChange={(e) => {
                     handleFileChange(e, setProfilePictureFile, "profilePicture");
-                    onChange(e.target.files?.[0] || null);
+                    if (e.target.files && e.target.files[0]) {
+                      onChange(e.target.files[0]);
+                    }
                   }}
                   {...field}
                 />
@@ -168,11 +192,14 @@ const DocumentationStep: React.FC<DocumentationStepProps> = ({ form }) => {
             <FormLabel className="text-white">Certificado de Formação/Capacitação</FormLabel>
             <FormControl>
               <div className="flex items-center space-x-4">
-                <div className={cn(
-                  "flex-1 flex items-center p-4 rounded-md",
-                  "bg-teal-700/50 border border-dashed border-lavender-400/30",
-                  certificateFile && "border-green-400/40 bg-teal-700/60"
-                )}>
+                <div 
+                  className={cn(
+                    "flex-1 flex items-center p-4 rounded-md cursor-pointer",
+                    "bg-teal-700/50 border border-dashed border-lavender-400/30",
+                    certificateFile && "border-green-400/40 bg-teal-700/60"
+                  )}
+                  onClick={() => certificateFile && openPreview(certificateFile, certificateFile.startsWith('data:image') ? "image" : "pdf")}
+                >
                   <div className="flex-1 flex items-center">
                     {certificateFile ? (
                       <>
@@ -202,7 +229,9 @@ const DocumentationStep: React.FC<DocumentationStepProps> = ({ form }) => {
                   accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
                   onChange={(e) => {
                     handleFileChange(e, setCertificateFile, "certificate");
-                    onChange(e.target.files?.[0] || null);
+                    if (e.target.files && e.target.files[0]) {
+                      onChange(e.target.files[0]);
+                    }
                   }}
                   {...field}
                 />
@@ -224,11 +253,14 @@ const DocumentationStep: React.FC<DocumentationStepProps> = ({ form }) => {
             <FormLabel className="text-white">Documento de Identidade com Foto</FormLabel>
             <FormControl>
               <div className="flex items-center space-x-4">
-                <div className={cn(
-                  "flex-1 flex items-center p-4 rounded-md",
-                  "bg-teal-700/50 border border-dashed border-lavender-400/30",
-                  idDocumentFile && "border-green-400/40 bg-teal-700/60"
-                )}>
+                <div 
+                  className={cn(
+                    "flex-1 flex items-center p-4 rounded-md cursor-pointer",
+                    "bg-teal-700/50 border border-dashed border-lavender-400/30",
+                    idDocumentFile && "border-green-400/40 bg-teal-700/60"
+                  )}
+                  onClick={() => idDocumentFile && openPreview(idDocumentFile, idDocumentFile.startsWith('data:image') ? "image" : "pdf")}
+                >
                   <div className="flex-1 flex items-center">
                     {idDocumentFile ? (
                       <>
@@ -258,7 +290,9 @@ const DocumentationStep: React.FC<DocumentationStepProps> = ({ form }) => {
                   accept=".pdf,.jpg,.jpeg,.png"
                   onChange={(e) => {
                     handleFileChange(e, setIdDocumentFile, "idDocument");
-                    onChange(e.target.files?.[0] || null);
+                    if (e.target.files && e.target.files[0]) {
+                      onChange(e.target.files[0]);
+                    }
                   }}
                   {...field}
                 />
@@ -293,8 +327,25 @@ const DocumentationStep: React.FC<DocumentationStepProps> = ({ form }) => {
           </FormItem>
         )}
       />
+      
+      {/* Dialog para visualizar documentos */}
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-auto">
+          <DialogTitle>{previewType === "pdf" ? "Visualização do PDF" : "Visualização da Imagem"}</DialogTitle>
+          <div className="flex justify-center mt-4">
+            {previewUrl && (
+              previewType === "pdf" ? (
+                <embed src={previewUrl} type="application/pdf" width="100%" height="500px" />
+              ) : (
+                <img src={previewUrl} alt="Visualização" className="max-h-[70vh] object-contain" />
+              )
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
 
 export default DocumentationStep;
+

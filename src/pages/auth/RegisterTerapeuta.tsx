@@ -13,9 +13,10 @@ import BasicInfoStep from "@/components/auth/therapist/BasicInfoStep";
 import ProfessionalProfileStep from "@/components/auth/therapist/ProfessionalProfileStep";
 import DocumentationStep from "@/components/auth/therapist/DocumentationStep";
 import SuccessMessage from "@/components/auth/therapist/SuccessMessage";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowLeft, ArrowRight, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Alert } from "@/components/ui/alert";
 
 // Schema para validação do serviço de terapia
 const serviceSchema = z.object({
@@ -48,9 +49,15 @@ const registerSchema = z.object({
   sessionDuration: z.string().min(1, "Selecione a duração da sessão"),
   
   // Etapa 3: Documentação
-  profilePicture: z.any().optional(),
-  certificate: z.any().optional(),
-  idDocument: z.any().optional(),
+  profilePicture: z.any().refine(val => !!val, {
+    message: "A foto de perfil é obrigatória"
+  }),
+  certificate: z.any().refine(val => !!val, {
+    message: "O certificado de formação é obrigatório"
+  }),
+  idDocument: z.any().refine(val => !!val, {
+    message: "O documento de identidade é obrigatório"
+  }),
   termsAccepted: z.boolean().refine(val => val === true, {
     message: "Você precisa aceitar os termos de serviço e política de privacidade"
   }),
@@ -75,6 +82,7 @@ export default function RegisterTerapeuta() {
   const totalSteps = 3;
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
   
@@ -146,8 +154,22 @@ export default function RegisterTerapeuta() {
   
   const onSubmit = async (data: RegisterFormValues) => {
     setIsLoading(true);
+    setFormError(null);
     
     try {
+      // Validar arquivos obrigatórios
+      if (!data.profilePicture) {
+        throw new Error("A foto de perfil é obrigatória");
+      }
+      
+      if (!data.certificate) {
+        throw new Error("O certificado de formação é obrigatório");
+      }
+      
+      if (!data.idDocument) {
+        throw new Error("O documento de identidade é obrigatório");
+      }
+      
       // 1. Registrar o usuário no Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: data.email,
@@ -178,6 +200,10 @@ export default function RegisterTerapeuta() {
             data.profilePicture, 
             `profile-pics/${authData.user.id}`
           );
+          
+          if (!profilePictureUrl) {
+            throw new Error("Não foi possível fazer upload da foto de perfil");
+          }
         }
         
         // Upload do certificado
@@ -186,6 +212,10 @@ export default function RegisterTerapeuta() {
             data.certificate, 
             `certificates/${authData.user.id}`
           );
+          
+          if (!certificateUrl) {
+            throw new Error("Não foi possível fazer upload do certificado");
+          }
         }
         
         // Upload do documento de identidade
@@ -194,6 +224,10 @@ export default function RegisterTerapeuta() {
             data.idDocument, 
             `id-docs/${authData.user.id}`
           );
+          
+          if (!idDocumentUrl) {
+            throw new Error("Não foi possível fazer upload do documento de identidade");
+          }
         }
         
         // 2. Criar perfil do terapeuta com todos os campos importantes
@@ -286,6 +320,7 @@ export default function RegisterTerapeuta() {
       }
     } catch (error: any) {
       console.error("Erro no cadastro:", error);
+      setFormError(error.message || "Ocorreu um erro ao processar seu cadastro. Por favor, tente novamente.");
       toast({
         title: "Erro no cadastro",
         description: error.message || "Ocorreu um erro ao processar seu cadastro. Por favor, tente novamente.",
@@ -317,7 +352,7 @@ export default function RegisterTerapeuta() {
         fieldsToValidate.push("registrationNumber");
       }
     } else if (currentStep === 3) {
-      fieldsToValidate = ["termsAccepted"];
+      fieldsToValidate = ["profilePicture", "certificate", "idDocument", "termsAccepted"];
     }
     
     // Validar apenas os campos da etapa atual
@@ -325,11 +360,17 @@ export default function RegisterTerapeuta() {
     
     if (result) {
       setCurrentStep(prev => Math.min(prev + 1, totalSteps));
+      setFormError(null); // Limpa mensagens de erro ao avançar
+    } else {
+      // Se houver erro, destacar os campos com problemas
+      const errors = form.formState.errors;
+      console.log("Erros de validação:", errors);
     }
   };
   
   const prevStep = () => {
     setCurrentStep(prev => Math.max(prev - 1, 1));
+    setFormError(null); // Limpa mensagens de erro ao voltar
   };
   
   // Renderizar o conteúdo com base na etapa atual
@@ -372,6 +413,13 @@ export default function RegisterTerapeuta() {
             </CardHeader>
             
             <CardContent>
+              {formError && (
+                <Alert variant="destructive" className="mb-4">
+                  <AlertCircle className="h-4 w-4 mr-2" />
+                  <span>{formError}</span>
+                </Alert>
+              )}
+              
               <form onSubmit={form.handleSubmit(onSubmit)}>
                 {renderStepContent()}
                 
@@ -450,3 +498,4 @@ export default function RegisterTerapeuta() {
     </>
   );
 }
+
