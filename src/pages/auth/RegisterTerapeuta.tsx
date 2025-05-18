@@ -102,6 +102,48 @@ export default function RegisterTerapeuta() {
     mode: "onBlur",
   });
   
+  // Helper function to convert File to base64 string
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = error => reject(error);
+    });
+  };
+  
+  // Function to upload file to storage
+  const uploadFile = async (file: File, path: string): Promise<string | null> => {
+    try {
+      if (!file) return null;
+      
+      // Generate unique file name
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}.${fileExt}`;
+      const filePath = `${path}/${fileName}`;
+      
+      // Upload to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from('therapist_docs')
+        .upload(filePath, file);
+      
+      if (uploadError) {
+        console.error('Error uploading file:', uploadError);
+        throw new Error(uploadError.message);
+      }
+      
+      // Get public URL
+      const { data } = supabase.storage
+        .from('therapist_docs')
+        .getPublicUrl(filePath);
+        
+      return data.publicUrl;
+    } catch (error) {
+      console.error('File upload error:', error);
+      return null;
+    }
+  };
+  
   const onSubmit = async (data: RegisterFormValues) => {
     setIsLoading(true);
     
@@ -125,6 +167,35 @@ export default function RegisterTerapeuta() {
       if (authData.user) {
         console.log("Usuário criado com sucesso:", authData.user);
         
+        // Preparar uploads de arquivos
+        let profilePictureUrl = null;
+        let certificateUrl = null;
+        let idDocumentUrl = null;
+        
+        // Upload da foto de perfil
+        if (data.profilePicture && data.profilePicture instanceof File) {
+          profilePictureUrl = await uploadFile(
+            data.profilePicture, 
+            `profile-pics/${authData.user.id}`
+          );
+        }
+        
+        // Upload do certificado
+        if (data.certificate && data.certificate instanceof File) {
+          certificateUrl = await uploadFile(
+            data.certificate, 
+            `certificates/${authData.user.id}`
+          );
+        }
+        
+        // Upload do documento de identidade
+        if (data.idDocument && data.idDocument instanceof File) {
+          idDocumentUrl = await uploadFile(
+            data.idDocument, 
+            `id-docs/${authData.user.id}`
+          );
+        }
+        
         // 2. Criar perfil do terapeuta com todos os campos importantes
         const { data: profileData, error: profileError } = await supabase
           .from('therapist_profiles')
@@ -135,9 +206,11 @@ export default function RegisterTerapeuta() {
             bio: data.biography,
             approach: data.approach || "", 
             price: parseInt(data.services[0].price) || parseInt(data.sessionPrice) || 0,
-            avatar: "", // Será preenchido posteriormente
+            avatar: profilePictureUrl || "", 
             is_approved: false, // Terapeuta precisa ser aprovado por um admin
-            specialty: data.specialties[0] || "" // Principal especialidade (primeira da lista)
+            specialty: data.specialties[0] || "", // Principal especialidade (primeira da lista)
+            certificate_url: certificateUrl || "",
+            id_document_url: idDocumentUrl || ""
           })
           .select();
         

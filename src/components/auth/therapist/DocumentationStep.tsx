@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { UseFormReturn } from "react-hook-form";
-import { Upload } from "lucide-react";
+import { Upload, File, CheckCircle, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   FormControl,
@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { Alert } from "@/components/ui/alert";
 
 interface DocumentationStepProps {
   form: UseFormReturn<any>;
@@ -24,12 +25,32 @@ const DocumentationStep: React.FC<DocumentationStepProps> = ({ form }) => {
   const [profilePictureFile, setProfilePictureFile] = useState<string | null>(null);
   const [certificateFile, setCertificateFile] = useState<string | null>(null);
   const [idDocumentFile, setIdDocumentFile] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   
   // Handler para exibir preview de arquivos de imagem
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>, setFile: (url: string | null) => void) => {
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>, setFile: (url: string | null) => void, fieldName: string) => {
     const file = event.target.files?.[0];
+    setUploadError(null);
+    
     if (!file) {
       setFile(null);
+      return;
+    }
+    
+    // Verificar tamanho do arquivo (5MB)
+    const maxSize = 5 * 1024 * 1024; // 5MB em bytes
+    if (file.size > maxSize) {
+      setUploadError(`O arquivo excede o tamanho máximo permitido de 5MB.`);
+      return;
+    }
+    
+    // Verificar tipos de arquivos permitidos
+    const allowedTypes = fieldName === 'profilePicture' 
+      ? ['image/jpeg', 'image/png', 'image/jpg']
+      : ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
+      
+    if (!allowedTypes.includes(file.type)) {
+      setUploadError(`Formato de arquivo não permitido. Use ${fieldName === 'profilePicture' ? 'JPEG/PNG' : 'PDF, JPEG ou PNG'}.`);
       return;
     }
     
@@ -39,9 +60,43 @@ const DocumentationStep: React.FC<DocumentationStepProps> = ({ form }) => {
     };
     reader.readAsDataURL(file);
   };
+
+  const getFileTypeIcon = (fileUrl: string | null) => {
+    if (!fileUrl) return null;
+    
+    if (fileUrl.startsWith('data:image')) {
+      return <CheckCircle className="h-5 w-5 text-green-500" />;
+    } else if (fileUrl.startsWith('data:application/pdf')) {
+      return <File className="h-5 w-5 text-blue-500" />;
+    }
+    
+    return <CheckCircle className="h-5 w-5 text-green-500" />;
+  };
+  
+  const getFileName = (fieldName: string, fileUrl: string | null) => {
+    if (!fileUrl) return null;
+    
+    const file = form.getValues(fieldName);
+    if (file && file.name) {
+      return file.name;
+    }
+    
+    return fieldName === 'profilePicture' 
+      ? 'foto-perfil' 
+      : fieldName === 'certificate' 
+        ? 'certificado' 
+        : 'documento-identidade';
+  };
   
   return (
     <div className="space-y-6">
+      {uploadError && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertCircle className="h-4 w-4 mr-2" />
+          <span>{uploadError}</span>
+        </Alert>
+      )}
+      
       <FormField
         control={form.control}
         name="profilePicture"
@@ -81,11 +136,20 @@ const DocumentationStep: React.FC<DocumentationStepProps> = ({ form }) => {
                   className="hidden"
                   accept="image/*"
                   onChange={(e) => {
-                    handleFileChange(e, setProfilePictureFile);
+                    handleFileChange(e, setProfilePictureFile, "profilePicture");
                     onChange(e.target.files?.[0] || null);
                   }}
                   {...field}
                 />
+                
+                {profilePictureFile && (
+                  <div className="flex items-center mt-2 text-sm text-white/80">
+                    <CheckCircle className="h-4 w-4 text-green-500 mr-1" />
+                    <span className="truncate max-w-[200px]">
+                      {getFileName("profilePicture", profilePictureFile)}
+                    </span>
+                  </div>
+                )}
               </div>
             </FormControl>
             <FormDescription className="text-center text-white/50 text-sm">
@@ -106,11 +170,17 @@ const DocumentationStep: React.FC<DocumentationStepProps> = ({ form }) => {
               <div className="flex items-center space-x-4">
                 <div className={cn(
                   "flex-1 flex items-center p-4 rounded-md",
-                  "bg-teal-700/50 border border-dashed border-lavender-400/30"
+                  "bg-teal-700/50 border border-dashed border-lavender-400/30",
+                  certificateFile && "border-green-400/40 bg-teal-700/60"
                 )}>
-                  <div className="flex-1">
+                  <div className="flex-1 flex items-center">
                     {certificateFile ? (
-                      <p className="text-white truncate">Documento selecionado</p>
+                      <>
+                        {getFileTypeIcon(certificateFile)}
+                        <span className="text-white ml-2 truncate">
+                          {getFileName("certificate", certificateFile)}
+                        </span>
+                      </>
                     ) : (
                       <p className="text-white/50">Nenhum arquivo selecionado</p>
                     )}
@@ -131,7 +201,7 @@ const DocumentationStep: React.FC<DocumentationStepProps> = ({ form }) => {
                   className="hidden"
                   accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
                   onChange={(e) => {
-                    handleFileChange(e, setCertificateFile);
+                    handleFileChange(e, setCertificateFile, "certificate");
                     onChange(e.target.files?.[0] || null);
                   }}
                   {...field}
@@ -156,11 +226,17 @@ const DocumentationStep: React.FC<DocumentationStepProps> = ({ form }) => {
               <div className="flex items-center space-x-4">
                 <div className={cn(
                   "flex-1 flex items-center p-4 rounded-md",
-                  "bg-teal-700/50 border border-dashed border-lavender-400/30"
+                  "bg-teal-700/50 border border-dashed border-lavender-400/30",
+                  idDocumentFile && "border-green-400/40 bg-teal-700/60"
                 )}>
-                  <div className="flex-1">
+                  <div className="flex-1 flex items-center">
                     {idDocumentFile ? (
-                      <p className="text-white truncate">Documento selecionado</p>
+                      <>
+                        {getFileTypeIcon(idDocumentFile)}
+                        <span className="text-white ml-2 truncate">
+                          {getFileName("idDocument", idDocumentFile)}
+                        </span>
+                      </>
                     ) : (
                       <p className="text-white/50">Nenhum arquivo selecionado</p>
                     )}
@@ -181,7 +257,7 @@ const DocumentationStep: React.FC<DocumentationStepProps> = ({ form }) => {
                   className="hidden"
                   accept=".pdf,.jpg,.jpeg,.png"
                   onChange={(e) => {
-                    handleFileChange(e, setIdDocumentFile);
+                    handleFileChange(e, setIdDocumentFile, "idDocument");
                     onChange(e.target.files?.[0] || null);
                   }}
                   {...field}
