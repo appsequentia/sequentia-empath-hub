@@ -1,81 +1,62 @@
 
+import { useEffect } from 'react';
+import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import './App.css'
 import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "./contexts/AuthContext";
-import ProtectedRoute from "./components/auth/ProtectedRoute";
-import { StrictMode } from 'react';
+import { AuthProvider } from '@/contexts/AuthContext';
+import Index from '@/pages/Index';
+import About from '@/pages/About';
+import Contact from '@/pages/Contact';
+import Therapies from '@/pages/Therapies';
+import Specialists from '@/pages/Specialists';
+import Specialist from '@/pages/Specialist';
+import LoginTerapeuta from '@/pages/auth/LoginTerapeuta';
+import LoginCliente from '@/pages/auth/LoginCliente';
+import RegisterTerapeuta from '@/pages/auth/RegisterTerapeuta';
+import RegisterCliente from '@/pages/auth/RegisterCliente';
+import AdminPanel from '@/pages/admin/AdminPanel';
+import StartAssessment from '@/pages/assessment/Start';
+import Question from '@/pages/assessment/Question';
+import Results from '@/pages/assessment/Results';
+import ClientDashboard from '@/pages/dashboard/ClientDashboard';
+import TherapistDashboard from '@/pages/dashboard/TherapistDashboard';
+import NotFound from '@/pages/NotFound';
+import Pagamento from '@/pages/Pagamento';
+import { createTherapistDocumentsBucket } from '@/integrations/supabase/createBucket';
 
-import Index from "./pages/Index";
-import About from "./pages/About";
-import AssessmentStart from "./pages/assessment/Start";
-import AssessmentQuestion from "./pages/assessment/Question";
-import AssessmentResults from "./pages/assessment/Results";
-import SpecialistDetail from "./pages/Specialist";
-import NotFound from "./pages/NotFound";
-import LoginCliente from "./pages/auth/LoginCliente";
-import RegisterCliente from "./pages/auth/RegisterCliente";
-import LoginTerapeuta from "./pages/auth/LoginTerapeuta";
-import RegisterTerapeuta from "./pages/auth/RegisterTerapeuta";
-import AdminPanel from "./pages/admin/AdminPanel";
-import ClientDashboard from "./pages/dashboard/ClientDashboard";
-import TherapistDashboard from "./pages/dashboard/TherapistDashboard";
-import Pagamento from "./pages/Pagamento";
-import Contact from "./pages/Contact";
-import Specialists from "./pages/Specialists";
-import Therapies from "./pages/Therapies";
+function App() {
+  // Initialize therapy documents bucket on app load
+  useEffect(() => {
+    createTherapistDocumentsBucket();
+  }, []);
 
-const App = () => {
-  const queryClient = new QueryClient();
-  
   return (
-    <StrictMode>
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <BrowserRouter>
-            <AuthProvider>
-              <Toaster />
-              <Sonner />
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/about" element={<About />} />
-                <Route path="/assessment/start" element={<AssessmentStart />} />
-                <Route path="/assessment/questions/:questionId" element={<AssessmentQuestion />} />
-                <Route path="/assessment/results" element={<AssessmentResults />} />
-                <Route path="/specialists" element={<Specialists />} />
-                <Route path="/specialists/:id" element={<SpecialistDetail />} />
-                <Route path="/therapies" element={<Therapies />} />
-                <Route path="/login-cliente" element={<LoginCliente />} />
-                <Route path="/register-cliente" element={<RegisterCliente />} />
-                <Route path="/login-terapeuta" element={<LoginTerapeuta />} />
-                <Route path="/register-terapeuta" element={<RegisterTerapeuta />} />
-                <Route path="/admin" element={
-                  <ProtectedRoute allowedRoles={['admin']}>
-                    <AdminPanel />
-                  </ProtectedRoute>
-                } />
-                <Route path="/dashboard-cliente" element={
-                  <ProtectedRoute>
-                    <ClientDashboard />
-                  </ProtectedRoute>
-                } />
-                <Route path="/dashboard-terapeuta" element={
-                  <ProtectedRoute>
-                    <TherapistDashboard />
-                  </ProtectedRoute>
-                } />
-                <Route path="/pagamento" element={<Pagamento />} />
-                <Route path="/contato" element={<Contact />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </AuthProvider>
-          </BrowserRouter>
-        </TooltipProvider>
-      </QueryClientProvider>
-    </StrictMode>
-  );
-};
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Index />} />
+          <Route path="/sobre" element={<About />} />
+          <Route path="/contato" element={<Contact />} />
+          <Route path="/terapias" element={<Therapies />} />
+          <Route path="/especialistas" element={<Specialists />} />
+          <Route path="/especialistas/:id" element={<Specialist />} />
+          <Route path="/login-terapeuta" element={<LoginTerapeuta />} />
+          <Route path="/login-cliente" element={<LoginCliente />} />
+          <Route path="/register-terapeuta" element={<RegisterTerapeuta />} />
+          <Route path="/register-cliente" element={<RegisterCliente />} />
+          <Route path="/admin" element={<AdminPanel />} />
+          <Route path="/dashboard/terapeuta" element={<TherapistDashboard />} />
+          <Route path="/dashboard/cliente" element={<ClientDashboard />} />
+          <Route path="/avaliacao" element={<StartAssessment />} />
+          <Route path="/avaliacao/pergunta/:id" element={<Question />} />
+          <Route path="/avaliacao/resultados" element={<Results />} />
+          <Route path="/pagamento" element={<Pagamento />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+        <Toaster />
+      </BrowserRouter>
+    </AuthProvider>
+  )
+}
 
-export default App;
+export default App

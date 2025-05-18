@@ -348,4 +348,3 @@ const DocumentationStep: React.FC<DocumentationStepProps> = ({ form }) => {
 };
 
 export default DocumentationStep;
-
