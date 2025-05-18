@@ -20,7 +20,7 @@ export function Header() {
         
         <DesktopNavigation />
         
-        <div className="hidden md:block ml-auto">
+        <div className="hidden md:block mr-8">
           {!isLoggedIn && <AuthButtons />}
         </div>
         
