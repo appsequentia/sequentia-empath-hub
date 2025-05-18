@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -16,6 +17,14 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
+// Schema para validação do serviço de terapia
+const serviceSchema = z.object({
+  name: z.string().min(1, "Informe o nome da terapia"),
+  duration: z.string().min(1, "Selecione a duração"),
+  price: z.string().min(1, "Informe o valor"),
+  description: z.string().optional(),
+});
+
 // Schema completo para validação de todos os campos do formulário
 const registerSchema = z.object({
   // Etapa 1: Informações Básicas
@@ -33,6 +42,8 @@ const registerSchema = z.object({
   registrationNumber: z.string().optional(),
   specialties: z.array(z.string()).min(1, "Selecione pelo menos uma especialidade"),
   biography: z.string().min(50, "A biografia deve ter pelo menos 50 caracteres"),
+  approach: z.string().optional(), // Novo campo
+  services: z.array(serviceSchema).min(1, "Adicione pelo menos um serviço"), // Novo campo
   sessionPrice: z.string().min(1, "Informe o valor da sessão"),
   sessionDuration: z.string().min(1, "Selecione a duração da sessão"),
   
@@ -82,6 +93,8 @@ export default function RegisterTerapeuta() {
       hasNoRegistration: false,
       specialties: [],
       biography: "",
+      approach: "",
+      services: [{ name: "", duration: "", price: "", description: "" }],
       sessionPrice: "",
       sessionDuration: "",
       termsAccepted: false,
@@ -120,8 +133,8 @@ export default function RegisterTerapeuta() {
             name: `${data.firstName} ${data.lastName}`,
             title: data.professionalTitle,
             bio: data.biography,
-            approach: "", // Será preenchido posteriormente
-            price: parseInt(data.sessionPrice) || 0,
+            approach: data.approach || "", 
+            price: parseInt(data.services[0].price) || parseInt(data.sessionPrice) || 0,
             avatar: "", // Será preenchido posteriormente
             is_approved: false, // Terapeuta precisa ser aprovado por um admin
             specialty: data.specialties[0] || "" // Principal especialidade (primeira da lista)
@@ -152,6 +165,37 @@ export default function RegisterTerapeuta() {
             throw specError;
           } else {
             console.log("Especialidades inseridas com sucesso:", specData);
+          }
+        }
+
+        // 4. Adicionar serviços/terapias
+        if (data.services && data.services.length > 0) {
+          const servicesToInsert = data.services
+            .filter(service => service.name && service.price) // Filtra serviços vazios
+            .map(service => ({
+              therapist_id: authData.user!.id,
+              name: service.name,
+              description: service.description || "",
+              duration: parseInt(service.duration) || 50,
+              price: parseFloat(service.price) || 0
+            }));
+          
+          if (servicesToInsert.length > 0) {
+            const { data: servicesData, error: servicesError } = await supabase
+              .from('therapist_services')
+              .insert(servicesToInsert)
+              .select();
+              
+            if (servicesError) {
+              console.error("Erro ao inserir serviços:", servicesError);
+              toast({
+                title: "Aviso",
+                description: "Seus serviços não puderam ser salvos. Você poderá adicioná-los mais tarde no painel.",
+                variant: "default"
+              });
+            } else {
+              console.log("Serviços inseridos com sucesso:", servicesData);
+            }
           }
         }
         
@@ -187,7 +231,13 @@ export default function RegisterTerapeuta() {
       fieldsToValidate = ["firstName", "lastName", "email", "password", "confirmPassword", "phone", "cpf"];
     } else if (currentStep === 2) {
       const hasNoRegistration = form.watch("hasNoRegistration");
-      fieldsToValidate = ["professionalTitle", "specialties", "biography", "sessionPrice", "sessionDuration"];
+      fieldsToValidate = [
+        "professionalTitle", 
+        "specialties", 
+        "biography", 
+        "approach", 
+        "services"
+      ];
       
       // Adiciona validação do número de registro apenas se não marcou a opção "Não possuo registro"
       if (!hasNoRegistration) {
