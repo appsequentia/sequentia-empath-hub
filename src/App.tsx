@@ -23,7 +23,6 @@ import TherapistDashboard from '@/pages/dashboard/TherapistDashboard';
 import NotFound from '@/pages/NotFound';
 import Pagamento from '@/pages/Pagamento';
 import { createTherapistDocumentsBucket } from '@/integrations/supabase/createBucket';
-import ProtectedRoute from '@/components/auth/ProtectedRoute';
 
 function App() {
   // Initialize therapy documents bucket on app load
@@ -45,30 +44,9 @@ function App() {
           <Route path="/login-cliente" element={<LoginCliente />} />
           <Route path="/register-terapeuta" element={<RegisterTerapeuta />} />
           <Route path="/register-cliente" element={<RegisterCliente />} />
-          <Route 
-            path="/admin" 
-            element={
-              <ProtectedRoute allowedRoles={['admin']}>
-                <AdminPanel />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/dashboard/terapeuta" 
-            element={
-              <ProtectedRoute allowedRoles={['terapeuta', 'admin']} redirectPath="/login-terapeuta">
-                <TherapistDashboard />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/dashboard/cliente" 
-            element={
-              <ProtectedRoute allowedRoles={['cliente', 'user', 'admin']} redirectPath="/login-cliente">
-                <ClientDashboard />
-              </ProtectedRoute>
-            } 
-          />
+          <Route path="/admin" element={<AdminPanel />} />
+          <Route path="/dashboard/terapeuta" element={<TherapistDashboard />} />
+          <Route path="/dashboard/cliente" element={<ClientDashboard />} />
           <Route path="/avaliacao" element={<StartAssessment />} />
           <Route path="/avaliacao/pergunta/:id" element={<Question />} />
           <Route path="/avaliacao/resultados" element={<Results />} />
