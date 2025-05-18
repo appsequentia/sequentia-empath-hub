@@ -22,7 +22,7 @@ export const FormAlerts = ({ formError, bucketReady }: FormAlertsProps) => {
       )}
       
       {bucketReady === false && (
-        <Alert variant="warning" className="mb-6 border-orange-400 bg-orange-500/5">
+        <Alert variant="warning" className="mb-6">
           <AlertTriangle className="h-4 w-4 text-orange-400 mr-2" />
           <AlertTitle>Sistema de upload limitado</AlertTitle>
           <AlertDescription>
