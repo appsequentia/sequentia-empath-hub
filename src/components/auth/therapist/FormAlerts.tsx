@@ -1,29 +1,33 @@
 
-import React from 'react';
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle, AlertTriangle, CheckCircle } from "lucide-react";
 
 interface FormAlertsProps {
   formError: string | null;
   bucketReady: boolean | null;
 }
 
-export const FormAlerts: React.FC<FormAlertsProps> = ({ formError, bucketReady }) => {
+export const FormAlerts = ({ formError, bucketReady }: FormAlertsProps) => {
+  // Don't show any alerts if there are no issues
+  if (!formError && bucketReady !== false) return null;
+  
   return (
     <>
       {formError && (
-        <Alert variant="destructive" className="mb-4">
+        <Alert variant="destructive" className="mb-6">
           <AlertCircle className="h-4 w-4 mr-2" />
+          <AlertTitle>Erro no cadastro</AlertTitle>
           <AlertDescription>{formError}</AlertDescription>
         </Alert>
       )}
       
       {bucketReady === false && (
-        <Alert className="mb-4 bg-amber-500/10 border-amber-500/50">
-          <AlertCircle className="h-4 w-4 mr-2 text-amber-500" />
+        <Alert variant="warning" className="mb-6 border-orange-400 bg-orange-500/5">
+          <AlertTriangle className="h-4 w-4 text-orange-400 mr-2" />
+          <AlertTitle>Sistema de upload limitado</AlertTitle>
           <AlertDescription>
-            O sistema de upload de documentos pode estar indisponível. 
-            Isso pode causar problemas ao finalizar o cadastro.
+            O sistema de upload de arquivos pode estar com funcionamento limitado.
+            Você poderá continuar o cadastro, mas talvez precise enviar documentos posteriormente.
           </AlertDescription>
         </Alert>
       )}

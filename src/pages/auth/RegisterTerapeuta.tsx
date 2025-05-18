@@ -112,10 +112,18 @@ export default function RegisterTerapeuta() {
     initBucket
   } = useTherapistRegistration(form);
   
-  // Initialize bucket on component mount
+  // Initialize bucket on component mount, but don't block rendering if it fails
   useEffect(() => {
-    initBucket();
-  }, []);
+    try {
+      initBucket().catch(error => {
+        console.error("Failed to initialize bucket, continuing anyway:", error);
+        // Continue with the form regardless of bucket status
+      });
+    } catch (error) {
+      console.error("Error during bucket initialization:", error);
+      // Continue with the form regardless of bucket status
+    }
+  }, [initBucket]);
   
   // Renderizar o conteúdo com base na etapa atual
   const renderStepContent = () => {

@@ -11,18 +11,13 @@ export const useFileUpload = (bucketName = 'therapist_docs') => {
   // Function to upload file to storage
   const uploadFile = async (file: File, path: string): Promise<string | null> => {
     try {
-      setIsUploading(true);
-      console.log("Starting upload for file:", file.name, "to path:", path);
-      
       if (!file) {
         console.error("No file provided for upload");
         return null;
       }
       
-      if (bucketReady === false) {
-        console.error("Storage bucket not ready or accessible");
-        throw new Error("O sistema de armazenamento está indisponível no momento. Tente novamente mais tarde.");
-      }
+      setIsUploading(true);
+      console.log("Starting upload for file:", file.name, "to path:", path);
       
       // Check file size (max 5MB)
       const maxSize = 5 * 1024 * 1024; // 5MB in bytes
@@ -47,6 +42,12 @@ export const useFileUpload = (bucketName = 'therapist_docs') => {
       
       if (uploadError) {
         console.error('Error uploading file:', uploadError);
+        
+        // Handle RLS policy errors gracefully
+        if (uploadError.message.includes("new row violates row-level security")) {
+          throw new Error(`Erro de permissão ao enviar arquivo. Verifique se você está autenticado.`);
+        }
+        
         throw new Error(`Erro ao enviar ${file.name}: ${uploadError.message}`);
       }
       

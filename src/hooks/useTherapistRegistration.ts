@@ -1,10 +1,9 @@
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { UseFormReturn } from "react-hook-form";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "./use-toast";
 import { useNavigate } from "react-router-dom";
-import { useFileUpload } from "./useFileUpload";
 import { createTherapistDocumentsBucket } from "@/integrations/supabase/createBucket";
 
 export interface TherapistForm {
@@ -40,32 +39,37 @@ export const useTherapistRegistration = (form: UseFormReturn<TherapistForm>) => 
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-  const [bucketReady, setBucketReady] = useState(false);
+  const [bucketReady, setBucketReady] = useState<boolean | null>(null);
   const totalSteps = 3;
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { uploadFile } = useFileUpload('therapist_docs');
   
-  // Initialize bucket check
-  const initBucket = async () => {
-    const result = await createTherapistDocumentsBucket();
-    console.log("Bucket initialization result:", result);
-    setBucketReady(result);
-    
-    if (!result) {
-      toast({
-        title: "Aviso de Sistema",
-        description: "O sistema de upload de arquivos pode estar indisponível temporariamente. Alguns recursos podem não funcionar corretamente.",
-        variant: "destructive",
-        duration: 6000
-      });
+  // Initialize bucket check - fallback to true if check fails to prevent blocking UI
+  const initBucket = useCallback(async () => {
+    try {
+      const result = await createTherapistDocumentsBucket();
+      console.log("Bucket initialization result:", result);
+      setBucketReady(result);
+      
+      if (!result) {
+        toast({
+          title: "Aviso de Sistema",
+          description: "O sistema de upload de arquivos pode estar indisponível temporariamente. Alguns recursos podem não funcionar corretamente.",
+          variant: "destructive",
+          duration: 6000
+        });
+      }
+    } catch (error) {
+      console.error("Failed to check bucket status:", error);
+      // Fallback to assume bucket is ready to prevent blocking UI
+      setBucketReady(true);
     }
-  };
+  }, [toast]);
   
   const nextStep = async () => {
     let fieldsToValidate: string[] = [];
     
-    // Definir quais campos validar com base na etapa atual
+    // Define which fields to validate based on current step
     if (currentStep === 1) {
       fieldsToValidate = ["firstName", "lastName", "email", "password", "confirmPassword", "phone", "cpf"];
     } else if (currentStep === 2) {
@@ -78,7 +82,7 @@ export const useTherapistRegistration = (form: UseFormReturn<TherapistForm>) => 
         "services"
       ];
       
-      // Adiciona validação do número de registro apenas se não marcou a opção "Não possuo registro"
+      // Add validation for registration number only if not marked "No registration"
       if (!hasNoRegistration) {
         fieldsToValidate.push("registrationNumber");
       }
@@ -86,14 +90,14 @@ export const useTherapistRegistration = (form: UseFormReturn<TherapistForm>) => 
       fieldsToValidate = ["profilePicture", "certificate", "idDocument", "termsAccepted"];
     }
     
-    // Validar apenas os campos da etapa atual
+    // Validate only fields for current step
     const result = await form.trigger(fieldsToValidate as any);
     
     if (result) {
       setCurrentStep(prev => Math.min(prev + 1, totalSteps));
-      setFormError(null); // Limpa mensagens de erro ao avançar
+      setFormError(null); // Clear error messages when advancing
     } else {
-      // Se houver erro, destacar os campos com problemas
+      // Highlight fields with problems
       const errors = form.formState.errors;
       console.log("Validation errors:", errors);
     }
@@ -101,7 +105,63 @@ export const useTherapistRegistration = (form: UseFormReturn<TherapistForm>) => 
   
   const prevStep = () => {
     setCurrentStep(prev => Math.max(prev - 1, 1));
-    setFormError(null); // Limpa mensagens de erro ao voltar
+    setFormError(null); // Clear error messages when going back
+  };
+  
+  // Upload a file to Supabase Storage
+  const uploadFile = async (file: File, userId: string, fileType: 'profile-pics' | 'certificates' | 'id-docs'): Promise<string | null> => {
+    if (!file) return null;
+    
+    try {
+      console.log(`Uploading ${fileType} file:`, file.name);
+      
+      // Create folder structure: fileType/userId/timestamp-filename
+      const timestamp = Date.now();
+      const fileExt = file.name.split('.').pop();
+      const filePath = `${userId}/${fileType}/${timestamp}.${fileExt}`;
+      
+      // Upload to Supabase Storage
+      const { error: uploadError, data } = await supabase.storage
+        .from('therapist_docs')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+      
+      if (uploadError) {
+        console.error(`Error uploading ${fileType}:`, uploadError);
+        throw new Error(`Erro ao enviar ${file.name}: ${uploadError.message}`);
+      }
+      
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('therapist_docs')
+        .getPublicUrl(filePath);
+      
+      console.log(`${fileType} upload successful:`, urlData.publicUrl);
+      return urlData.publicUrl;
+    } catch (error) {
+      console.error(`${fileType} upload error:`, error);
+      throw error;
+    }
+  };
+  
+  // Check if therapist profile already exists
+  const checkExistingProfile = async (userId: string): Promise<boolean> => {
+    try {
+      const { data, error } = await supabase
+        .from('therapist_profiles')
+        .select('id')
+        .eq('id', userId)
+        .maybeSingle();
+        
+      if (error) throw error;
+      
+      return !!data; // Return true if profile exists
+    } catch (error) {
+      console.error("Error checking existing profile:", error);
+      return false;
+    }
   };
   
   const onSubmit = async (data: TherapistForm) => {
@@ -159,42 +219,35 @@ export const useTherapistRegistration = (form: UseFormReturn<TherapistForm>) => 
         throw new Error("Falha ao criar conta de usuário");
       }
       
-      console.log("User created successfully:", authData.user.id);
+      const userId = authData.user.id;
+      console.log("User created successfully:", userId);
       
-      // Upload files
-      let profilePictureUrl = null;
-      let certificateUrl = null;
-      let idDocumentUrl = null;
-      
-      // Upload profile picture
-      if (data.profilePicture && data.profilePicture instanceof File) {
-        profilePictureUrl = await uploadFile(
-          data.profilePicture, 
-          `profile-pics/${authData.user.id}`
-        );
-      }
-      
-      // Upload certificate
-      if (data.certificate && data.certificate instanceof File) {
-        certificateUrl = await uploadFile(
-          data.certificate, 
-          `certificates/${authData.user.id}`
-        );
-      }
-      
-      // Upload ID document
-      if (data.idDocument && data.idDocument instanceof File) {
-        idDocumentUrl = await uploadFile(
-          data.idDocument, 
-          `id-docs/${authData.user.id}`
-        );
-      }
-      
-      // 2. Create therapist profile
-      const { error: profileError } = await supabase
-        .from('therapist_profiles')
-        .insert({
-          id: authData.user.id,
+      try {
+        // Upload documents in parallel for better performance
+        const [profilePictureUrl, certificateUrl, idDocumentUrl] = await Promise.all([
+          // Upload profile picture
+          data.profilePicture instanceof File 
+            ? uploadFile(data.profilePicture, userId, 'profile-pics')
+            : Promise.resolve(null),
+            
+          // Upload certificate
+          data.certificate instanceof File 
+            ? uploadFile(data.certificate, userId, 'certificates')
+            : Promise.resolve(null),
+            
+          // Upload ID document
+          data.idDocument instanceof File 
+            ? uploadFile(data.idDocument, userId, 'id-docs')
+            : Promise.resolve(null)
+        ]);
+        
+        // Check if therapist profile already exists
+        const profileExists = await checkExistingProfile(userId);
+        console.log("Profile exists:", profileExists);
+        
+        // 2. Create or update therapist profile
+        const profileData = {
+          id: userId,
           name: `${data.firstName} ${data.lastName}`,
           title: data.professionalTitle,
           bio: data.biography,
@@ -205,71 +258,102 @@ export const useTherapistRegistration = (form: UseFormReturn<TherapistForm>) => 
           specialty: data.specialties[0] || "",
           certificate_url: certificateUrl || "",
           id_document_url: idDocumentUrl || ""
-        });
-      
-      if (profileError) {
-        console.error("Error creating profile:", profileError);
-        throw profileError;
-      }
-      
-      // 3. Add specializations
-      if (data.specialties.length > 0) {
-        const specializationsToInsert = data.specialties.map(specialty => ({
-          therapist_id: authData.user.id,
-          specialization: specialty
-        }));
+        };
         
-        const { error: specError } = await supabase
-          .from('therapist_specializations')
-          .insert(specializationsToInsert);
-          
-        if (specError) {
-          console.error("Error adding specializations:", specError);
-          // Continue despite error, not critical
+        const { error: profileError } = profileExists 
+          ? await supabase
+              .from('therapist_profiles')
+              .update(profileData)
+              .eq('id', userId)
+          : await supabase
+              .from('therapist_profiles')
+              .insert(profileData);
+        
+        if (profileError) {
+          console.error("Error creating/updating profile:", profileError);
+          throw profileError;
         }
-      }
-
-      // 4. Add services/therapies
-      if (data.services && data.services.length > 0) {
-        const servicesToInsert = data.services
-          .filter(service => service.name && service.price)
-          .map(service => ({
-            therapist_id: authData.user.id,
-            name: service.name,
-            description: service.description || "",
-            duration: parseInt(service.duration) || 50,
-            price: parseFloat(service.price) || 0
-          }));
         
-        if (servicesToInsert.length > 0) {
-          const { error: servicesError } = await supabase
-            .from('therapist_services')
-            .insert(servicesToInsert);
+        // 3. Add specializations
+        if (data.specialties.length > 0) {
+          // Delete existing specializations first if profile already exists
+          if (profileExists) {
+            await supabase
+              .from('therapist_specializations')
+              .delete()
+              .eq('therapist_id', userId);
+          }
+          
+          const specializationsToInsert = data.specialties.map(specialty => ({
+            therapist_id: userId,
+            specialization: specialty
+          }));
+          
+          const { error: specError } = await supabase
+            .from('therapist_specializations')
+            .insert(specializationsToInsert);
             
-          if (servicesError) {
-            console.error("Error adding services:", servicesError);
-            toast({
-              title: "Aviso",
-              description: "Seus serviços não puderam ser salvos. Você poderá adicioná-los mais tarde no painel.",
-              variant: "default"
-            });
+          if (specError) {
+            console.error("Error adding specializations:", specError);
+            // Continue despite error, not critical
           }
         }
+
+        // 4. Add services/therapies
+        if (data.services && data.services.length > 0) {
+          // Delete existing services first if profile already exists
+          if (profileExists) {
+            await supabase
+              .from('therapist_services')
+              .delete()
+              .eq('therapist_id', userId);
+          }
+          
+          const servicesToInsert = data.services
+            .filter(service => service.name && service.price)
+            .map(service => ({
+              therapist_id: userId,
+              name: service.name,
+              description: service.description || "",
+              duration: parseInt(service.duration) || 50,
+              price: parseFloat(service.price) || 0
+            }));
+          
+          if (servicesToInsert.length > 0) {
+            const { error: servicesError } = await supabase
+              .from('therapist_services')
+              .insert(servicesToInsert);
+              
+            if (servicesError) {
+              console.error("Error adding services:", servicesError);
+              toast({
+                title: "Aviso",
+                description: "Seus serviços não puderam ser salvos. Você poderá adicioná-los mais tarde no painel.",
+                variant: "default"
+              });
+            }
+          }
+        }
+        
+        // Success!
+        console.log("Registration completed successfully");
+        setFormSubmitted(true);
+        toast({
+          title: "Cadastro realizado com sucesso!",
+          description: "Seu cadastro foi enviado para análise. Você receberá um email quando for aprovado.",
+          variant: "default"
+        });
+        
+        // Redirect to login after 3 seconds
+        setTimeout(() => {
+          navigate('/login-terapeuta');
+        }, 3000);
+        
+      } catch (uploadError: any) {
+        console.error("Error in document processing:", uploadError);
+        throw new Error(`Erro ao processar documentos: ${uploadError.message}`);
       }
       
-      // Success!
-      console.log("Registration completed successfully");
-      setFormSubmitted(true);
-      toast({
-        title: "Cadastro realizado com sucesso!",
-        description: "Seu cadastro foi enviado para análise. Você receberá um email quando for aprovado.",
-        variant: "default"
-      });
-      
-      // Redirect to login after 3 seconds
-      setTimeout(() => {
-        navigate('/login-terapeuta');
-      }, 3000);
     } catch (error: any) {
       console.error("Registration error:", error);
       setFormError(error.message || "Ocorreu um erro ao processar seu cadastro. Por favor, tente novamente.");

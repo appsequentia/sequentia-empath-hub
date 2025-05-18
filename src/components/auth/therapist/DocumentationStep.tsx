@@ -37,7 +37,7 @@ const DocumentationStep: React.FC<DocumentationStepProps> = ({ form }) => {
   const [previewType, setPreviewType] = useState<string>("");
   const [previewName, setPreviewName] = useState<string>("");
   
-  // Verificar se campos obrigatórios estão preenchidos
+  // Check if required fields are filled
   const profilePicture = form.watch("profilePicture");
   const certificate = form.watch("certificate");
   const idDocument = form.watch("idDocument");
@@ -403,9 +403,9 @@ const DocumentationStep: React.FC<DocumentationStepProps> = ({ form }) => {
       
       {/* Dialog para visualizar documentos */}
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-        <DialogContent className="max-w-3xl max-h-[80vh] overflow-auto">
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-auto bg-teal-800 border-lavender-400/20 text-white">
           <DialogHeader>
-            <DialogTitle>{previewName}</DialogTitle>
+            <DialogTitle className="text-white">{previewName}</DialogTitle>
           </DialogHeader>
           
           <div className="flex justify-center mt-4">
@@ -422,7 +422,7 @@ const DocumentationStep: React.FC<DocumentationStepProps> = ({ form }) => {
             <Button 
               variant="outline" 
               onClick={() => setPreviewOpen(false)}
-              className="mt-4"
+              className="mt-4 bg-transparent border-white/20 text-white hover:bg-white/10"
             >
               Fechar
             </Button>

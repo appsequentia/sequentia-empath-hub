@@ -1,86 +1,70 @@
 
-import React, { ReactNode } from 'react';
-import { ArrowLeft, ArrowRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Link } from 'react-router-dom';
-import StepIndicator from '@/components/auth/StepIndicator';
+import { ReactNode } from "react";
+import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
 
 interface StepManagerProps {
+  children: ReactNode;
   currentStep: number;
   totalSteps: number;
   formSubmitted: boolean;
   isLoading: boolean;
   onPrevStep: () => void;
-  onNextStep: () => void;
-  children: ReactNode;
+  onNextStep: () => Promise<void>;
 }
 
-export const StepManager: React.FC<StepManagerProps> = ({
-  currentStep,
-  totalSteps,
+export const StepManager = ({ 
+  children, 
+  currentStep, 
+  totalSteps, 
   formSubmitted,
   isLoading,
-  onPrevStep,
-  onNextStep,
-  children
-}) => {
+  onPrevStep, 
+  onNextStep 
+}: StepManagerProps) => {
+  
+  // For the last step, show the final submit button
+  const isLastStep = currentStep === totalSteps;
+  
   return (
-    <>
-      <div className="space-y-2">
-        {!formSubmitted && (
-          <StepIndicator currentStep={currentStep} totalSteps={totalSteps} />
-        )}
+    <div className="space-y-8">
+      {/* Content */}
+      <div className={formSubmitted ? "animate-pulse" : ""}>
+        {children}
       </div>
       
-      {/* Form Content */}
-      {children}
-      
+      {/* Navigation buttons */}
       {!formSubmitted && (
-        <div className="flex justify-between mt-8">
-          {currentStep > 1 ? (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onPrevStep}
-              className="bg-transparent border-lavender-400/30 text-white hover:bg-lavender-400/10"
-              disabled={isLoading}
-            >
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Voltar
-            </Button>
-          ) : (
-            <Link to="/login-terapeuta">
-              <Button
-                type="button"
-                variant="outline"
-                className="bg-transparent border-lavender-400/30 text-white hover:bg-lavender-400/10"
-              >
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Voltar para login
-              </Button>
-            </Link>
-          )}
+        <div className="flex justify-between pt-4">
+          <Button
+            type="button"
+            onClick={onPrevStep}
+            disabled={currentStep === 1 || isLoading}
+            className="bg-transparent border border-lavender-400/30 text-white hover:bg-lavender-400/10"
+          >
+            Voltar
+          </Button>
           
-          {currentStep < totalSteps ? (
-            <Button
-              type="button"
-              onClick={onNextStep}
-              className="bg-lavender-400 hover:bg-lavender-500 text-teal-900 font-medium"
-            >
-              Próximo
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-          ) : (
-            <Button
-              type="submit"
-              className="bg-lavender-400 hover:bg-lavender-500 text-teal-900 font-medium"
-              disabled={isLoading}
-            >
-              {isLoading ? 'Processando...' : 'Finalizar cadastro'}
-            </Button>
-          )}
+          <Button 
+            type={isLastStep ? "submit" : "button"}
+            onClick={isLastStep ? undefined : onNextStep}
+            disabled={isLoading}
+            className={isLastStep 
+              ? "bg-lavender-400 hover:bg-lavender-500 text-teal-900" 
+              : "bg-lavender-400/30 hover:bg-lavender-400/40 text-white"
+            }
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                {isLastStep ? "Enviando..." : "Carregando..."}
+              </>
+            ) : (
+              isLastStep ? "Finalizar Cadastro" : "Próximo"
+            )}
+          </Button>
         </div>
       )}
-    </>
+    </div>
   );
 };
