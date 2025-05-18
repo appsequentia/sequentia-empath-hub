@@ -3,7 +3,6 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { UserMenu } from "./UserMenu";
-import { AuthButtons } from "./AuthButtons";
 
 export function DesktopNavigation() {
   const { user, signOut } = useAuth();
@@ -24,7 +23,7 @@ export function DesktopNavigation() {
         Contato
       </Link>
       
-      {isLoggedIn ? <UserMenu user={user} signOut={signOut} /> : <AuthButtons />}
+      {isLoggedIn && <UserMenu user={user} signOut={signOut} />}
     </nav>
   );
 }
