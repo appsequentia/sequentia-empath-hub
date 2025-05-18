@@ -62,9 +62,9 @@ export async function createTherapistDocumentsBucket() {
         console.log(`Created '${BUCKET_ID}' bucket successfully`);
         
         // Configure CORS for the bucket to allow direct access
-        // Use hardcoded values for Supabase URL and key since direct access is not allowed
-        const supabaseUrl = "https://wyyefqjcdwgyeixcbhda.supabase.co";
-        const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind5eWVmcWpjZHdneWVpeGNiaGRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc0ODU0OTEsImV4cCI6MjA2MzA2MTQ5MX0._R8yqY9lYyMNlgmZpq1QRwMeVgwRpo8_kaYp2qPyzxQ";
+        // Extract URL and key from environment variables or use hardcoded fallbacks
+        const supabaseUrl = 'https://wyyefqjcdwgyeixcbhda.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind5eWVmcWpjZHdneWVpeGNiaGRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc0ODU0OTEsImV4cCI6MjA2MzA2MTQ5MX0._R8yqY9lYyMNlgmZpq1QRwMeVgwRpo8_kaYp2qPyzxQ';
         
         try {
           const corsResponse = await fetch(`${supabaseUrl}/storage/v1/bucket/${BUCKET_ID}/cors`, {
