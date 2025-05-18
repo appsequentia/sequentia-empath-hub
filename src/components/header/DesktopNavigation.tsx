@@ -9,7 +9,7 @@ export function DesktopNavigation() {
   const isLoggedIn = !!user;
   
   return (
-    <nav className="hidden md:flex items-center justify-center flex-1">
+    <nav className="flex items-center justify-center">
       <div className="flex items-center space-x-8">
         <Link to="/sobre" className="text-white/90 hover:text-lavender-300 transition-colors">
           Como funciona
