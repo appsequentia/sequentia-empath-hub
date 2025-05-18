@@ -62,12 +62,16 @@ export async function createTherapistDocumentsBucket() {
         console.log(`Created '${BUCKET_ID}' bucket successfully`);
         
         // Configure CORS for the bucket to allow direct access
+        // Extract URL and key from the SUPABASE_URL and SUPABASE_KEY constants in client.ts
+        const supabaseUrl = process.env.SUPABASE_URL || 'https://wyyefqjcdwgyeixcbhda.supabase.co';
+        const supabaseKey = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind5eWVmcWpjZHdneWVpeGNiaGRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc0ODU0OTEsImV4cCI6MjA2MzA2MTQ5MX0._R8yqY9lYyMNlgmZpq1QRwMeVgwRpo8_kaYp2qPyzxQ';
+        
         try {
-          const corsResponse = await fetch(`${supabase.supabaseUrl}/storage/v1/bucket/${BUCKET_ID}/cors`, {
+          const corsResponse = await fetch(`${supabaseUrl}/storage/v1/bucket/${BUCKET_ID}/cors`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${supabase.supabaseKey}`
+              'Authorization': `Bearer ${supabaseKey}`
             },
             body: JSON.stringify({
               allowedOrigins: ['*'],
