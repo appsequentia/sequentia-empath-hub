@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -16,7 +16,8 @@ import SuccessMessage from "@/components/auth/therapist/SuccessMessage";
 import { ArrowLeft, ArrowRight, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Alert } from "@/components/ui/alert";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { createTherapistDocumentsBucket } from "@/integrations/supabase/createBucket";
 
 // Schema para validação do serviço de terapia
 const serviceSchema = z.object({
@@ -83,8 +84,29 @@ export default function RegisterTerapeuta() {
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [bucketReady, setBucketReady] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  
+  // Initialize bucket on component mount
+  useEffect(() => {
+    const initBucket = async () => {
+      const result = await createTherapistDocumentsBucket();
+      console.log("Bucket initialization result:", result);
+      setBucketReady(result);
+      
+      if (!result) {
+        toast({
+          title: "Aviso de Sistema",
+          description: "O sistema de upload de arquivos pode estar indisponível temporariamente. Alguns recursos podem não funcionar corretamente.",
+          variant: "destructive",
+          duration: 6000
+        });
+      }
+    };
+    
+    initBucket();
+  }, [toast]);
   
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
@@ -129,6 +151,17 @@ export default function RegisterTerapeuta() {
         return null;
       }
       
+      if (!bucketReady) {
+        console.error("Storage bucket not ready or accessible");
+        throw new Error("O sistema de armazenamento está indisponível no momento. Tente novamente mais tarde.");
+      }
+      
+      // Check file size (max 5MB)
+      const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+      if (file.size > maxSize) {
+        throw new Error(`O arquivo ${file.name} excede o limite de 5MB.`);
+      }
+      
       // Generate unique file name
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}.${fileExt}`;
@@ -139,11 +172,14 @@ export default function RegisterTerapeuta() {
       // Upload to Supabase Storage
       const { error: uploadError, data } = await supabase.storage
         .from('therapist_docs')
-        .upload(filePath, file);
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
       
       if (uploadError) {
         console.error('Error uploading file:', uploadError);
-        throw new Error(uploadError.message);
+        throw new Error(`Erro ao enviar ${file.name}: ${uploadError.message}`);
       }
       
       console.log("Upload successful, data:", data);
@@ -154,10 +190,21 @@ export default function RegisterTerapeuta() {
         .getPublicUrl(filePath);
         
       console.log("Public URL:", urlData.publicUrl);
+      
+      // Verify URL is accessible
+      try {
+        const checkResponse = await fetch(urlData.publicUrl, { method: 'HEAD' });
+        if (!checkResponse.ok) {
+          console.warn("File URL may not be accessible:", checkResponse.status);
+        }
+      } catch (e) {
+        console.warn("Could not verify file URL accessibility:", e);
+      }
+      
       return urlData.publicUrl;
     } catch (error: any) {
       console.error('File upload error:', error);
-      return null;
+      throw error;
     }
   };
   
@@ -167,7 +214,7 @@ export default function RegisterTerapeuta() {
     setFormError(null);
     
     try {
-      console.log("Form submission started with data:", data);
+      console.log("Form submission started with data:", { ...data, password: "[REDACTED]" });
       
       // Validate required files
       if (!data.profilePicture) {
@@ -198,12 +245,16 @@ export default function RegisterTerapeuta() {
             last_name: data.lastName,
             phone: data.phone,
             cpf: data.cpf,
+            user_type: "terapeuta", // Important to identify user type
           },
         },
       });
       
       if (authError) {
         console.error("Auth error:", authError);
+        if (authError.message.includes("User already registered")) {
+          throw new Error("Email já cadastrado. Utilize outro email ou faça login.");
+        }
         throw authError;
       }
       
@@ -212,7 +263,7 @@ export default function RegisterTerapeuta() {
         throw new Error("Falha ao criar conta de usuário");
       }
       
-      console.log("User created successfully:", authData.user);
+      console.log("User created successfully:", authData.user.id);
       
       // Prepare file uploads
       let profilePictureUrl = null;
@@ -222,43 +273,73 @@ export default function RegisterTerapeuta() {
       // Upload profile picture
       if (data.profilePicture && data.profilePicture instanceof File) {
         console.log("Uploading profile picture");
-        profilePictureUrl = await uploadFile(
-          data.profilePicture, 
-          `profile-pics/${authData.user.id}`
-        );
-        
-        if (!profilePictureUrl) {
-          throw new Error("Não foi possível fazer upload da foto de perfil");
+        try {
+          profilePictureUrl = await uploadFile(
+            data.profilePicture, 
+            `profile-pics/${authData.user.id}`
+          );
+          
+          if (!profilePictureUrl) {
+            throw new Error("Não foi possível fazer upload da foto de perfil");
+          }
+          console.log("Profile picture uploaded:", profilePictureUrl);
+        } catch (error: any) {
+          console.error("Profile picture upload error:", error);
+          toast({
+            title: "Erro no upload",
+            description: error.message || "Erro ao enviar foto de perfil",
+            variant: "destructive",
+          });
+          throw error;
         }
-        console.log("Profile picture uploaded:", profilePictureUrl);
       }
       
       // Upload certificate
       if (data.certificate && data.certificate instanceof File) {
         console.log("Uploading certificate");
-        certificateUrl = await uploadFile(
-          data.certificate, 
-          `certificates/${authData.user.id}`
-        );
-        
-        if (!certificateUrl) {
-          throw new Error("Não foi possível fazer upload do certificado");
+        try {
+          certificateUrl = await uploadFile(
+            data.certificate, 
+            `certificates/${authData.user.id}`
+          );
+          
+          if (!certificateUrl) {
+            throw new Error("Não foi possível fazer upload do certificado");
+          }
+          console.log("Certificate uploaded:", certificateUrl);
+        } catch (error: any) {
+          console.error("Certificate upload error:", error);
+          toast({
+            title: "Erro no upload",
+            description: error.message || "Erro ao enviar certificado",
+            variant: "destructive",
+          });
+          throw error;
         }
-        console.log("Certificate uploaded:", certificateUrl);
       }
       
       // Upload ID document
       if (data.idDocument && data.idDocument instanceof File) {
         console.log("Uploading ID document");
-        idDocumentUrl = await uploadFile(
-          data.idDocument, 
-          `id-docs/${authData.user.id}`
-        );
-        
-        if (!idDocumentUrl) {
-          throw new Error("Não foi possível fazer upload do documento de identidade");
+        try {
+          idDocumentUrl = await uploadFile(
+            data.idDocument, 
+            `id-docs/${authData.user.id}`
+          );
+          
+          if (!idDocumentUrl) {
+            throw new Error("Não foi possível fazer upload do documento de identidade");
+          }
+          console.log("ID document uploaded:", idDocumentUrl);
+        } catch (error: any) {
+          console.error("ID document upload error:", error);
+          toast({
+            title: "Erro no upload",
+            description: error.message || "Erro ao enviar documento de identidade",
+            variant: "destructive",
+          });
+          throw error;
         }
-        console.log("ID document uploaded:", idDocumentUrl);
       }
       
       // 2. Create therapist profile
@@ -451,7 +532,17 @@ export default function RegisterTerapeuta() {
               {formError && (
                 <Alert variant="destructive" className="mb-4">
                   <AlertCircle className="h-4 w-4 mr-2" />
-                  <span>{formError}</span>
+                  <AlertDescription>{formError}</AlertDescription>
+                </Alert>
+              )}
+              
+              {!bucketReady && (
+                <Alert className="mb-4 bg-amber-500/10 border-amber-500/50">
+                  <AlertCircle className="h-4 w-4 mr-2 text-amber-500" />
+                  <AlertDescription>
+                    O sistema de upload de documentos pode estar indisponível. 
+                    Isso pode causar problemas ao finalizar o cadastro.
+                  </AlertDescription>
                 </Alert>
               )}
               
@@ -464,10 +555,7 @@ export default function RegisterTerapeuta() {
                       <Button
                         type="button"
                         variant="outline"
-                        onClick={() => {
-                          setCurrentStep(prev => Math.max(prev - 1, 1));
-                          setFormError(null);
-                        }}
+                        onClick={prevStep}
                         className="bg-transparent border-lavender-400/30 text-white hover:bg-lavender-400/10"
                         disabled={isLoading}
                       >
@@ -490,39 +578,7 @@ export default function RegisterTerapeuta() {
                     {currentStep < totalSteps ? (
                       <Button
                         type="button"
-                        onClick={() => {
-                          let fieldsToValidate: string[] = [];
-    
-                          // Define which fields to validate based on current step
-                          if (currentStep === 1) {
-                            fieldsToValidate = ["firstName", "lastName", "email", "password", "confirmPassword", "phone", "cpf"];
-                          } else if (currentStep === 2) {
-                            const hasNoRegistration = form.watch("hasNoRegistration");
-                            fieldsToValidate = [
-                              "professionalTitle", 
-                              "specialties", 
-                              "biography", 
-                              "approach", 
-                              "services"
-                            ];
-                            
-                            if (!hasNoRegistration) {
-                              fieldsToValidate.push("registrationNumber");
-                            }
-                          }
-                          
-                          // Validate only fields for current step
-                          form.trigger(fieldsToValidate as any).then(result => {
-                            if (result) {
-                              setCurrentStep(prev => Math.min(prev + 1, totalSteps));
-                              setFormError(null);
-                            } else {
-                              // Highlight fields with errors
-                              const errors = form.formState.errors;
-                              console.log("Validation errors:", errors);
-                            }
-                          });
-                        }}
+                        onClick={nextStep}
                         className="bg-lavender-400 hover:bg-lavender-500 text-teal-900 font-medium"
                       >
                         Próximo
@@ -533,18 +589,6 @@ export default function RegisterTerapeuta() {
                         type="submit"
                         className="bg-lavender-400 hover:bg-lavender-500 text-teal-900 font-medium"
                         disabled={isLoading}
-                        onClick={() => {
-                          // Additional validation for the final step
-                          const fieldsToValidate = ["profilePicture", "certificate", "idDocument", "termsAccepted"];
-                          form.trigger(fieldsToValidate as any).then(result => {
-                            if (!result) {
-                              const errors = form.formState.errors;
-                              console.log("Final validation errors:", errors);
-                            }
-                          });
-                          
-                          // The form.handleSubmit will be triggered by the form's onSubmit
-                        }}
                       >
                         {isLoading ? 'Processando...' : 'Finalizar cadastro'}
                       </Button>
