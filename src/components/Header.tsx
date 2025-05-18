@@ -14,17 +14,15 @@ export function Header() {
   const isLoggedIn = !!user;
   
   return <header className="w-full py-4 px-6 bg-teal-800/50 backdrop-blur-sm fixed top-0 z-50 md:px-[38px]">
-      <div className="max-w-7xl mx-auto flex items-center">
-        <div className="flex items-center mr-4">
+      <div className="max-w-7xl mx-auto flex items-center justify-between">
+        <div className="flex items-center gap-8">
           <Logo />
-        </div>
-        
-        <div className="flex-1">
-          <div className="flex items-center">
+          
+          <div className="hidden md:flex items-center">
             <DesktopNavigation />
             
             {!isLoggedIn && 
-              <div className="hidden md:block ml-4">
+              <div className="ml-6">
                 <AuthButtons />
               </div>
             }
