@@ -22,14 +22,6 @@ export async function createTherapistDocumentsBucket() {
         return false;
       }
       
-      // Create public policy for the bucket
-      const { error: policyError } = await supabase.storage.from('therapist_docs')
-        .createSignedUrl('dummy-path', 60); // This is just to trigger policy creation
-        
-      if (policyError && !policyError.message.includes('not found')) {
-        console.error('Error setting bucket policy:', policyError);
-      }
-      
       console.log('Created therapist_docs bucket');
       return true;
     }

@@ -123,15 +123,21 @@ export default function RegisterTerapeuta() {
   // Function to upload file to storage
   const uploadFile = async (file: File, path: string): Promise<string | null> => {
     try {
-      if (!file) return null;
+      console.log("Starting upload for file:", file.name, "to path:", path);
+      if (!file) {
+        console.error("No file provided for upload");
+        return null;
+      }
       
       // Generate unique file name
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}.${fileExt}`;
       const filePath = `${path}/${fileName}`;
       
+      console.log("Uploading to:", filePath);
+      
       // Upload to Supabase Storage
-      const { error: uploadError } = await supabase.storage
+      const { error: uploadError, data } = await supabase.storage
         .from('therapist_docs')
         .upload(filePath, file);
       
@@ -140,12 +146,15 @@ export default function RegisterTerapeuta() {
         throw new Error(uploadError.message);
       }
       
+      console.log("Upload successful, data:", data);
+      
       // Get public URL
-      const { data } = supabase.storage
+      const { data: urlData } = supabase.storage
         .from('therapist_docs')
         .getPublicUrl(filePath);
         
-      return data.publicUrl;
+      console.log("Public URL:", urlData.publicUrl);
+      return urlData.publicUrl;
     } catch (error: any) {
       console.error('File upload error:', error);
       return null;
@@ -153,13 +162,14 @@ export default function RegisterTerapeuta() {
   };
   
   const onSubmit = async (data: RegisterFormValues) => {
+    console.log("Submit function called with data:", data);
     setIsLoading(true);
     setFormError(null);
     
     try {
       console.log("Form submission started with data:", data);
       
-      // Validar arquivos obrigatórios
+      // Validate required files
       if (!data.profilePicture) {
         throw new Error("A foto de perfil é obrigatória");
       }
@@ -178,7 +188,7 @@ export default function RegisterTerapeuta() {
       
       console.log("Basic validation passed, proceeding with auth signup");
       
-      // 1. Registrar o usuário no Supabase Auth
+      // 1. Register the user in Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
@@ -197,148 +207,152 @@ export default function RegisterTerapeuta() {
         throw authError;
       }
       
-      if (authData.user) {
-        console.log("User created successfully:", authData.user);
+      if (!authData.user) {
+        console.error("No user returned from signUp");
+        throw new Error("Falha ao criar conta de usuário");
+      }
+      
+      console.log("User created successfully:", authData.user);
+      
+      // Prepare file uploads
+      let profilePictureUrl = null;
+      let certificateUrl = null;
+      let idDocumentUrl = null;
+      
+      // Upload profile picture
+      if (data.profilePicture && data.profilePicture instanceof File) {
+        console.log("Uploading profile picture");
+        profilePictureUrl = await uploadFile(
+          data.profilePicture, 
+          `profile-pics/${authData.user.id}`
+        );
         
-        // Preparar uploads de arquivos
-        let profilePictureUrl = null;
-        let certificateUrl = null;
-        let idDocumentUrl = null;
-        
-        // Upload da foto de perfil
-        if (data.profilePicture && data.profilePicture instanceof File) {
-          console.log("Uploading profile picture");
-          profilePictureUrl = await uploadFile(
-            data.profilePicture, 
-            `profile-pics/${authData.user.id}`
-          );
-          
-          if (!profilePictureUrl) {
-            throw new Error("Não foi possível fazer upload da foto de perfil");
-          }
-          console.log("Profile picture uploaded:", profilePictureUrl);
+        if (!profilePictureUrl) {
+          throw new Error("Não foi possível fazer upload da foto de perfil");
         }
+        console.log("Profile picture uploaded:", profilePictureUrl);
+      }
+      
+      // Upload certificate
+      if (data.certificate && data.certificate instanceof File) {
+        console.log("Uploading certificate");
+        certificateUrl = await uploadFile(
+          data.certificate, 
+          `certificates/${authData.user.id}`
+        );
         
-        // Upload do certificado
-        if (data.certificate && data.certificate instanceof File) {
-          console.log("Uploading certificate");
-          certificateUrl = await uploadFile(
-            data.certificate, 
-            `certificates/${authData.user.id}`
-          );
-          
-          if (!certificateUrl) {
-            throw new Error("Não foi possível fazer upload do certificado");
-          }
-          console.log("Certificate uploaded:", certificateUrl);
+        if (!certificateUrl) {
+          throw new Error("Não foi possível fazer upload do certificado");
         }
+        console.log("Certificate uploaded:", certificateUrl);
+      }
+      
+      // Upload ID document
+      if (data.idDocument && data.idDocument instanceof File) {
+        console.log("Uploading ID document");
+        idDocumentUrl = await uploadFile(
+          data.idDocument, 
+          `id-docs/${authData.user.id}`
+        );
         
-        // Upload do documento de identidade
-        if (data.idDocument && data.idDocument instanceof File) {
-          console.log("Uploading ID document");
-          idDocumentUrl = await uploadFile(
-            data.idDocument, 
-            `id-docs/${authData.user.id}`
-          );
-          
-          if (!idDocumentUrl) {
-            throw new Error("Não foi possível fazer upload do documento de identidade");
-          }
-          console.log("ID document uploaded:", idDocumentUrl);
+        if (!idDocumentUrl) {
+          throw new Error("Não foi possível fazer upload do documento de identidade");
         }
+        console.log("ID document uploaded:", idDocumentUrl);
+      }
+      
+      // 2. Create therapist profile
+      console.log("Creating therapist profile");
+      const { data: profileData, error: profileError } = await supabase
+        .from('therapist_profiles')
+        .insert({
+          id: authData.user.id,
+          name: `${data.firstName} ${data.lastName}`,
+          title: data.professionalTitle,
+          bio: data.biography,
+          approach: data.approach || "", 
+          price: parseInt(data.services[0].price) || parseInt(data.sessionPrice) || 0,
+          avatar: profilePictureUrl || "", 
+          is_approved: false,
+          specialty: data.specialties[0] || "",
+          certificate_url: certificateUrl || "",
+          id_document_url: idDocumentUrl || ""
+        })
+        .select();
+      
+      if (profileError) {
+        console.error("Error creating profile:", profileError);
+        throw profileError;
+      } else {
+        console.log("Profile created successfully:", profileData);
+      }
+      
+      // 3. Add specializations
+      if (data.specialties.length > 0) {
+        console.log("Adding specializations");
+        const specializationsToInsert = data.specialties.map(specialty => ({
+          therapist_id: authData.user.id,
+          specialization: specialty
+        }));
         
-        // 2. Criar perfil do terapeuta com todos os campos importantes
-        console.log("Creating therapist profile");
-        const { data: profileData, error: profileError } = await supabase
-          .from('therapist_profiles')
-          .insert({
-            id: authData.user.id,
-            name: `${data.firstName} ${data.lastName}`,
-            title: data.professionalTitle,
-            bio: data.biography,
-            approach: data.approach || "", 
-            price: parseInt(data.services[0].price) || parseInt(data.sessionPrice) || 0,
-            avatar: profilePictureUrl || "", 
-            is_approved: false, // Terapeuta precisa ser aprovado por um admin
-            specialty: data.specialties[0] || "", // Principal especialidade (primeira da lista)
-            certificate_url: certificateUrl || "",
-            id_document_url: idDocumentUrl || ""
-          })
+        const { data: specData, error: specError } = await supabase
+          .from('therapist_specializations')
+          .insert(specializationsToInsert)
           .select();
-        
-        if (profileError) {
-          console.error("Error creating profile:", profileError);
-          throw profileError;
-        } else {
-          console.log("Profile created successfully:", profileData);
-        }
-        
-        // 3. Adicionar especialidades
-        if (data.specialties.length > 0) {
-          console.log("Adding specializations");
-          const specializationsToInsert = data.specialties.map(specialty => ({
-            therapist_id: authData.user!.id,
-            specialization: specialty
-          }));
           
-          const { data: specData, error: specError } = await supabase
-            .from('therapist_specializations')
-            .insert(specializationsToInsert)
+        if (specError) {
+          console.error("Error adding specializations:", specError);
+          throw specError;
+        } else {
+          console.log("Specializations added successfully:", specData);
+        }
+      }
+
+      // 4. Add services/therapies
+      if (data.services && data.services.length > 0) {
+        console.log("Adding services");
+        const servicesToInsert = data.services
+          .filter(service => service.name && service.price)
+          .map(service => ({
+            therapist_id: authData.user.id,
+            name: service.name,
+            description: service.description || "",
+            duration: parseInt(service.duration) || 50,
+            price: parseFloat(service.price) || 0
+          }));
+        
+        if (servicesToInsert.length > 0) {
+          const { data: servicesData, error: servicesError } = await supabase
+            .from('therapist_services')
+            .insert(servicesToInsert)
             .select();
             
-          if (specError) {
-            console.error("Error adding specializations:", specError);
-            throw specError;
+          if (servicesError) {
+            console.error("Error adding services:", servicesError);
+            toast({
+              title: "Aviso",
+              description: "Seus serviços não puderam ser salvos. Você poderá adicioná-los mais tarde no painel.",
+              variant: "default"
+            });
           } else {
-            console.log("Specializations added successfully:", specData);
+            console.log("Services added successfully:", servicesData);
           }
         }
-
-        // 4. Adicionar serviços/terapias
-        if (data.services && data.services.length > 0) {
-          console.log("Adding services");
-          const servicesToInsert = data.services
-            .filter(service => service.name && service.price) // Filtra serviços vazios
-            .map(service => ({
-              therapist_id: authData.user!.id,
-              name: service.name,
-              description: service.description || "",
-              duration: parseInt(service.duration) || 50,
-              price: parseFloat(service.price) || 0
-            }));
-          
-          if (servicesToInsert.length > 0) {
-            const { data: servicesData, error: servicesError } = await supabase
-              .from('therapist_services')
-              .insert(servicesToInsert)
-              .select();
-              
-            if (servicesError) {
-              console.error("Error adding services:", servicesError);
-              toast({
-                title: "Aviso",
-                description: "Seus serviços não puderam ser salvos. Você poderá adicioná-los mais tarde no painel.",
-                variant: "default"
-              });
-            } else {
-              console.log("Services added successfully:", servicesData);
-            }
-          }
-        }
-        
-        // Sucesso!
-        console.log("Registration completed successfully");
-        setFormSubmitted(true);
-        toast({
-          title: "Cadastro realizado com sucesso!",
-          description: "Seu cadastro foi enviado para análise. Você receberá um email quando for aprovado.",
-        });
-        
-        // Redirecionar para o login após 3 segundos
-        setTimeout(() => {
-          navigate('/login-terapeuta');
-        }, 3000);
       }
+      
+      // Success!
+      console.log("Registration completed successfully");
+      setFormSubmitted(true);
+      toast({
+        title: "Cadastro realizado com sucesso!",
+        description: "Seu cadastro foi enviado para análise. Você receberá um email quando for aprovado.",
+        variant: "default"
+      });
+      
+      // Redirect to login after 3 seconds
+      setTimeout(() => {
+        navigate('/login-terapeuta');
+      }, 3000);
     } catch (error: any) {
       console.error("Registration error:", error);
       setFormError(error.message || "Ocorreu um erro ao processar seu cadastro. Por favor, tente novamente.");
@@ -450,7 +464,10 @@ export default function RegisterTerapeuta() {
                       <Button
                         type="button"
                         variant="outline"
-                        onClick={prevStep}
+                        onClick={() => {
+                          setCurrentStep(prev => Math.max(prev - 1, 1));
+                          setFormError(null);
+                        }}
                         className="bg-transparent border-lavender-400/30 text-white hover:bg-lavender-400/10"
                         disabled={isLoading}
                       >
@@ -473,7 +490,39 @@ export default function RegisterTerapeuta() {
                     {currentStep < totalSteps ? (
                       <Button
                         type="button"
-                        onClick={nextStep}
+                        onClick={() => {
+                          let fieldsToValidate: string[] = [];
+    
+                          // Define which fields to validate based on current step
+                          if (currentStep === 1) {
+                            fieldsToValidate = ["firstName", "lastName", "email", "password", "confirmPassword", "phone", "cpf"];
+                          } else if (currentStep === 2) {
+                            const hasNoRegistration = form.watch("hasNoRegistration");
+                            fieldsToValidate = [
+                              "professionalTitle", 
+                              "specialties", 
+                              "biography", 
+                              "approach", 
+                              "services"
+                            ];
+                            
+                            if (!hasNoRegistration) {
+                              fieldsToValidate.push("registrationNumber");
+                            }
+                          }
+                          
+                          // Validate only fields for current step
+                          form.trigger(fieldsToValidate as any).then(result => {
+                            if (result) {
+                              setCurrentStep(prev => Math.min(prev + 1, totalSteps));
+                              setFormError(null);
+                            } else {
+                              // Highlight fields with errors
+                              const errors = form.formState.errors;
+                              console.log("Validation errors:", errors);
+                            }
+                          });
+                        }}
                         className="bg-lavender-400 hover:bg-lavender-500 text-teal-900 font-medium"
                       >
                         Próximo
@@ -484,6 +533,18 @@ export default function RegisterTerapeuta() {
                         type="submit"
                         className="bg-lavender-400 hover:bg-lavender-500 text-teal-900 font-medium"
                         disabled={isLoading}
+                        onClick={() => {
+                          // Additional validation for the final step
+                          const fieldsToValidate = ["profilePicture", "certificate", "idDocument", "termsAccepted"];
+                          form.trigger(fieldsToValidate as any).then(result => {
+                            if (!result) {
+                              const errors = form.formState.errors;
+                              console.log("Final validation errors:", errors);
+                            }
+                          });
+                          
+                          // The form.handleSubmit will be triggered by the form's onSubmit
+                        }}
                       >
                         {isLoading ? 'Processando...' : 'Finalizar cadastro'}
                       </Button>
