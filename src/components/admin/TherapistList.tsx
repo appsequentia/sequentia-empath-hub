@@ -51,8 +51,12 @@ export function TherapistList() {
       if (usersError) throw usersError;
       
       // Combine data
-      const combinedData = therapistProfiles.map((profile) => {
+      const combinedData: Therapist[] = therapistProfiles.map((profile) => {
         const userProfile = profiles.find(u => u.id === profile.id);
+        
+        // Explicitly type profile_status as 'complete' | 'incomplete'
+        const profileStatus: 'complete' | 'incomplete' = 
+          profile.name && profile.bio && profile.specialty ? 'complete' : 'incomplete';
         
         return {
           id: profile.id,
@@ -60,8 +64,7 @@ export function TherapistList() {
           email: '', // We don't have direct access to emails through RLS
           is_approved: profile.is_approved,
           created_at: profile.created_at,
-          // Determine if profile is complete based on required fields
-          profile_status: profile.name && profile.bio && profile.specialty ? 'complete' : 'incomplete'
+          profile_status: profileStatus
         };
       });
       
