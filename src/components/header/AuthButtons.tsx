@@ -1,9 +1,7 @@
-
 import React from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-
 export function AuthButtons() {
   return <div className="flex items-center space-x-2">
       <Link to="/login-cliente">
@@ -13,7 +11,7 @@ export function AuthButtons() {
       </Link>
       <Popover>
         <PopoverTrigger asChild>
-          <Button className="bg-lavender-400 hover:bg-lavender-500 text-teal-900 font-medium">
+          <Button className="bg-lavender-400 hover:bg-lavender-500 text-teal-900 font-medium mx-[34px]">
             Criar Conta
           </Button>
         </PopoverTrigger>
