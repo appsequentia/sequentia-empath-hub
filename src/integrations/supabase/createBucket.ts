@@ -25,10 +25,10 @@ export async function createTherapistDocumentsBucket() {
     if (!bucketExists) {
       console.log(`Bucket '${BUCKET_ID}' not found, creating...`);
       
-      // Create storage bucket for therapist documents
-      const { data, error } = await supabase.storage.createBucket(BUCKET_ID, {
-        public: true, // Make bucket public for ease of access
-        fileSizeLimit: 5 * 1024 * 1024, // 5MB limit
+      // Create storage bucket for therapist documents with less restrictive options
+      const { error } = await supabase.storage.createBucket(BUCKET_ID, {
+        public: true,
+        fileSizeLimit: 10 * 1024 * 1024, // 10MB limit (increased from 5MB)
         allowedMimeTypes: [
           'image/jpeg', 
           'image/png', 
@@ -52,15 +52,42 @@ export async function createTherapistDocumentsBucket() {
             return true;
           } else {
             console.error(`Cannot access '${BUCKET_ID}' bucket:`, objError);
+            return false;
           }
         } else {
           console.error('Error creating bucket:', error);
+          return false;
         }
-        return false;
+      } else {
+        console.log(`Created '${BUCKET_ID}' bucket successfully`);
+        
+        // Configure CORS for the bucket to allow direct access
+        try {
+          const corsResponse = await fetch(`${supabase.supabaseUrl}/storage/v1/bucket/${BUCKET_ID}/cors`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${supabase.supabaseKey}`
+            },
+            body: JSON.stringify({
+              allowedOrigins: ['*'],
+              allowedMethods: ['GET', 'POST', 'PUT'],
+              allowedHeaders: ['*'],
+              maxAgeSeconds: 3600
+            })
+          });
+          
+          if (!corsResponse.ok) {
+            console.warn('Could not set CORS policy for bucket, but bucket was created');
+          } else {
+            console.log('CORS policy set for bucket');
+          }
+        } catch (corsError) {
+          console.warn('Error setting CORS policy, continuing anyway:', corsError);
+        }
+        
+        return true;
       }
-      
-      console.log(`Created '${BUCKET_ID}' bucket successfully`);
-      return true;
     }
     
     console.log(`Storage bucket '${BUCKET_ID}' already exists, checking accessibility...`);
@@ -72,6 +99,24 @@ export async function createTherapistDocumentsBucket() {
       
     if (objError) {
       console.error(`Bucket '${BUCKET_ID}' exists but may not be accessible:`, objError);
+      
+      // Try to update bucket settings if we can't access it
+      try {
+        const { error: updateError } = await supabase.storage.updateBucket(BUCKET_ID, {
+          public: true,
+          fileSizeLimit: 10 * 1024 * 1024,
+        });
+        
+        if (!updateError) {
+          console.log(`Updated bucket '${BUCKET_ID}' settings to be public`);
+          return true;
+        } else {
+          console.error('Error updating bucket permissions:', updateError);
+        }
+      } catch (updateErr) {
+        console.error('Error trying to update bucket settings:', updateErr);
+      }
+      
       return false;
     }
     
