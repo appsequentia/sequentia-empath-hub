@@ -1,7 +1,7 @@
 
 import { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
-import { StepIndicator } from "@/components/auth/StepIndicator";
+import StepIndicator from "@/components/auth/StepIndicator";
 
 interface StepManagerProps {
   children: ReactNode;

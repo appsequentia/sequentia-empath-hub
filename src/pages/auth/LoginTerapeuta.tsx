@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -41,14 +40,13 @@ export default function LoginTerapeuta() {
   
   const onSubmit = async (data: LoginFormValues) => {
     try {
-      const success = await signIn(data.email, data.password, activeTab);
+      await signIn(data.email, data.password, activeTab);
       
-      if (success) {
-        toast({
-          title: "Login realizado com sucesso",
-          description: "Você será redirecionado para o painel.",
-        });
-      }
+      // We don't need to check the return value as the AuthContext will handle navigation
+      toast({
+        title: "Login realizado com sucesso",
+        description: "Você será redirecionado para o painel.",
+      });
     } catch (error) {
       console.error("Login error:", error);
     }
