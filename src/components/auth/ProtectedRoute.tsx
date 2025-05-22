@@ -48,6 +48,15 @@ const ProtectedRoute = ({
     fetchUserRole();
   }, [user, allowedRoles, userRole]);
 
+  console.log('Protected Route Debug:', { 
+    isLoading, 
+    checkingRole, 
+    user: !!user, 
+    userRole, 
+    allowedRoles,
+    hasAccess: allowedRoles.length === 0 || allowedRoles.includes(userRole || '')
+  });
+
   // Se ainda está carregando o usuário ou verificando a role, mostra um spinner
   if (isLoading || checkingRole) {
     return <div className="flex justify-center items-center min-h-screen">Carregando...</div>;

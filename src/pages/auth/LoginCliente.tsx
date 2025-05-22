@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -32,6 +32,7 @@ export default function LoginCliente() {
   const [showPassword, setShowPassword] = useState(false);
   const [activeTab, setActiveTab] = useState("cliente");
   const { signIn } = useAuth();
+  const navigate = useNavigate();
   
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -42,7 +43,11 @@ export default function LoginCliente() {
   });
   
   const onSubmit = async (data: LoginFormValues) => {
-    await signIn(data.email, data.password, activeTab);
+    const success = await signIn(data.email, data.password, activeTab);
+    
+    // Se o login foi bem-sucedido e o usuário é um admin tentando acessar /admin, não
+    // é necessário fazer nenhum redirecionamento aqui pois o AuthContext já cuida disso
+    console.log('Login attempt completed:', success);
   };
   
   return (
