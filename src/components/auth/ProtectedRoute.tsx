@@ -18,36 +18,42 @@ const ProtectedRoute = ({
   redirectPath = "/login-cliente" 
 }: ProtectedRouteProps) => {
   const { user, isLoading, userRole } = useAuth();
-  const [checkingRole, setCheckingRole] = useState(allowedRoles.length > 0 && !userRole);
+  const [checkingRole, setCheckingRole] = useState(false);
   const location = useLocation();
 
+  // Verificamos as roles apenas se houver restrições e se houver um usuário logado
   useEffect(() => {
-    const fetchUserRole = async () => {
-      if (user && allowedRoles.length > 0 && !userRole) {
+    const checkUserRole = async () => {
+      if (user && allowedRoles.length > 0) {
+        setCheckingRole(true);
+        
         try {
-          const { data: profileData, error } = await supabase
+          // Verificar role do usuário diretamente do banco de dados
+          const { data, error } = await supabase
             .from('profiles')
             .select('role')
             .eq('id', user.id)
             .single();
             
           if (error) {
-            console.error('Error fetching user role:', error);
+            console.error('Erro ao verificar role do usuário:', error);
+            setCheckingRole(false);
+          } else {
+            setCheckingRole(false);
           }
-          
-          // Role verification is now handled by AuthContext, so we just finish checking
-          setCheckingRole(false);
         } catch (error) {
-          console.error('Error verifying user role:', error);
+          console.error('Erro ao verificar role do usuário:', error);
           setCheckingRole(false);
         }
-      } else {
-        setCheckingRole(false);
       }
     };
 
-    fetchUserRole();
-  }, [user, allowedRoles, userRole]);
+    if (user && allowedRoles.length > 0) {
+      checkUserRole();
+    } else {
+      setCheckingRole(false);
+    }
+  }, [user, allowedRoles]);
 
   console.log('Protected Route Debug:', { 
     isLoading, 
@@ -55,7 +61,7 @@ const ProtectedRoute = ({
     user: !!user, 
     userRole, 
     allowedRoles,
-    hasAccess: allowedRoles.length === 0 || allowedRoles.includes(userRole || ''),
+    hasAccess: allowedRoles.length === 0 || (userRole && allowedRoles.includes(userRole)),
     currentPath: location.pathname,
     redirectPath
   });
@@ -71,7 +77,7 @@ const ProtectedRoute = ({
   }
 
   // Se houver roles específicas necessárias e o usuário não tiver uma delas, nega o acesso
-  if (allowedRoles.length > 0 && !allowedRoles.includes(userRole || '')) {
+  if (allowedRoles.length > 0 && (!userRole || !allowedRoles.includes(userRole))) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-4">
         <Alert variant="destructive" className="max-w-md">

@@ -35,7 +35,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         if (event === 'SIGNED_IN' && currentSession?.user) {
           // Buscar role do usuário quando fizer login
-          fetchUserRole(currentSession.user.id);
+          // Usamos setTimeout(0) para evitar deadlocks com outros eventos do Supabase
+          setTimeout(() => {
+            fetchUserRole(currentSession.user.id);
+          }, 0);
         }
         
         if (event === 'SIGNED_OUT') {
@@ -83,8 +86,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (error) {
         console.error('Erro ao buscar role do usuário:', error);
         setUserRole(null);
+      } else if (data) {
+        console.log("Role encontrada:", data.role);
+        setUserRole(data?.role || null);
+        
+        // Redirecionar com base na role
+        if (data.role === 'admin') {
+          navigate('/admin');
+        } else if (data.role === 'terapeuta') {
+          navigate('/dashboard-terapeuta');
+        } else if (data.role === 'cliente') {
+          navigate('/dashboard-cliente');
+        }
       } else {
-        setUserRole(data?.role || 'user');
+        console.log("Nenhum perfil encontrado para o usuário");
+        setUserRole(null);
       }
     } catch (err) {
       console.error('Erro ao buscar role do usuário:', err);
@@ -100,6 +116,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     Object.keys(localStorage).forEach((key) => {
       if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
         localStorage.removeItem(key);
+      }
+    });
+    
+    // Remove from sessionStorage if in use
+    Object.keys(sessionStorage || {}).forEach((key) => {
+      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+        sessionStorage.removeItem(key);
       }
     });
   };
@@ -127,30 +150,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (data.user) {
         try {
-          const { data: profileData } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', data.user.id)
-            .single();
-          
-          const userRole = profileData?.role || 'user';
-          setUserRole(userRole);
-          
+          console.log("Usuário logado:", data.user);
           toast({
             title: "Login realizado com sucesso",
             description: "Bem-vindo(a) de volta!",
           });
           
-          // Redirecionamento baseado na role ou no tipo de usuário selecionado
-          if (userRole === 'admin') {
-            navigate('/admin');
-          } else if (userType === 'terapeuta' || userRole === 'terapeuta') {
-            navigate('/dashboard-terapeuta');
-          } else {
-            navigate('/dashboard-cliente');
-          }
-          
-          return;
+          // A função fetchUserRole será acionada pelo listener de onAuthStateChange
+          // Não fazemos o redirecionamento aqui para evitar conflitos
         } catch (err) {
           console.error("Erro ao verificar perfil:", err);
         }
