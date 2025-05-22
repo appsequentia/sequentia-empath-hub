@@ -81,9 +81,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .from('profiles')
         .select('role')
         .eq('id', userId)
-        .single();
+        .maybeSingle(); // Usar maybeSingle em vez de single para evitar erros quando não há resultados
       
-      if (error) {
+      if (error && error.code !== 'PGRST116') {
         console.error('Erro ao buscar role do usuário:', error);
         setUserRole(null);
       } else if (data) {
@@ -99,12 +99,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           navigate('/dashboard-cliente');
         }
       } else {
-        console.log("Nenhum perfil encontrado para o usuário");
-        setUserRole(null);
+        // Se não encontrou um perfil, vamos criar um com role 'cliente' por padrão
+        console.log("Nenhum perfil encontrado para o usuário, criando perfil padrão");
+        try {
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .insert([{ id: userId, role: 'cliente' }])
+            .select('role')
+            .single();
+            
+          if (profileError) {
+            console.error('Erro ao criar perfil do usuário:', profileError);
+            setUserRole('cliente'); // Assume cliente como padrão mesmo se falhar
+          } else {
+            console.log("Perfil criado com role:", profileData.role);
+            setUserRole(profileData.role);
+            navigate('/dashboard-cliente');
+          }
+        } catch (err) {
+          console.error('Erro ao criar perfil do usuário:', err);
+          setUserRole('cliente'); // Assume cliente como padrão mesmo se falhar
+        }
       }
     } catch (err) {
       console.error('Erro ao buscar role do usuário:', err);
       setUserRole(null);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -194,11 +215,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       // Se o cadastro for bem sucedido, atualiza a role do usuário na tabela profiles
       if (data.user) {
-        // Note: A trigger no Supabase já cria o profile, então só precisamos atualizar a role
-        await supabase
+        // Verificar se o perfil já existe
+        const { data: profileData, error: profileError } = await supabase
           .from('profiles')
-          .update({ role: userType || 'cliente' })
-          .eq('id', data.user.id);
+          .select('id')
+          .eq('id', data.user.id)
+          .maybeSingle();
+          
+        if (profileError && profileError.code !== 'PGRST116') {
+          console.error('Erro ao verificar perfil:', profileError);
+        }
+        
+        // Se o perfil não existe, criar um novo
+        if (!profileData) {
+          await supabase
+            .from('profiles')
+            .insert([{ 
+              id: data.user.id, 
+              first_name: firstName,
+              last_name: lastName,
+              role: userType || 'cliente' 
+            }]);
+        } else {
+          // Se já existe, atualizar a role
+          await supabase
+            .from('profiles')
+            .update({ role: userType || 'cliente' })
+            .eq('id', data.user.id);
+        }
       }
 
       toast({

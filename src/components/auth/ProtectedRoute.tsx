@@ -18,46 +18,10 @@ const ProtectedRoute = ({
   redirectPath = "/login-cliente" 
 }: ProtectedRouteProps) => {
   const { user, isLoading, userRole } = useAuth();
-  const [checkingRole, setCheckingRole] = useState(false);
   const location = useLocation();
-
-  // Verificamos as roles apenas se houver restrições e se houver um usuário logado
-  useEffect(() => {
-    const checkUserRole = async () => {
-      if (user && allowedRoles.length > 0) {
-        setCheckingRole(true);
-        
-        try {
-          // Verificar role do usuário diretamente do banco de dados
-          const { data, error } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', user.id)
-            .single();
-            
-          if (error) {
-            console.error('Erro ao verificar role do usuário:', error);
-            setCheckingRole(false);
-          } else {
-            setCheckingRole(false);
-          }
-        } catch (error) {
-          console.error('Erro ao verificar role do usuário:', error);
-          setCheckingRole(false);
-        }
-      }
-    };
-
-    if (user && allowedRoles.length > 0) {
-      checkUserRole();
-    } else {
-      setCheckingRole(false);
-    }
-  }, [user, allowedRoles]);
 
   console.log('Protected Route Debug:', { 
     isLoading, 
-    checkingRole, 
     user: !!user, 
     userRole, 
     allowedRoles,
@@ -66,8 +30,8 @@ const ProtectedRoute = ({
     redirectPath
   });
 
-  // Se ainda está carregando o usuário ou verificando a role, mostra um spinner
-  if (isLoading || checkingRole) {
+  // Se ainda está carregando o usuário, mostra um spinner
+  if (isLoading) {
     return <div className="flex justify-center items-center min-h-screen">Carregando...</div>;
   }
 

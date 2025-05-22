@@ -39,7 +39,7 @@ function App() {
           <Route path="/register-terapeuta" element={<RegisterTerapeuta />} />
           <Route path="/register-cliente" element={<RegisterCliente />} />
           <Route path="/admin" element={
-            <ProtectedRoute allowedRoles={['admin']} redirectPath="/login-terapeuta">
+            <ProtectedRoute allowedRoles={['admin']}>
               <AdminPanel />
             </ProtectedRoute>
           } />
