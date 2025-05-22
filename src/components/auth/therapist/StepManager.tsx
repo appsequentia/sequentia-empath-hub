@@ -1,7 +1,7 @@
 
 import { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
+import { StepIndicator } from "@/components/auth/StepIndicator";
 
 interface StepManagerProps {
   children: ReactNode;
@@ -10,61 +10,67 @@ interface StepManagerProps {
   formSubmitted: boolean;
   isLoading: boolean;
   onPrevStep: () => void;
-  onNextStep: () => Promise<void>;
+  onNextStep: () => void;
 }
 
-export const StepManager = ({ 
-  children, 
-  currentStep, 
-  totalSteps, 
+export const StepManager = ({
+  children,
+  currentStep,
+  totalSteps,
   formSubmitted,
   isLoading,
-  onPrevStep, 
-  onNextStep 
+  onPrevStep,
+  onNextStep,
 }: StepManagerProps) => {
+  // Se o formulário foi enviado, não mostrar os controles de navegação
+  if (formSubmitted) {
+    return <>{children}</>;
+  }
   
-  // For the last step, show the final submit button
+  // Verificar se está na última etapa
   const isLastStep = currentStep === totalSteps;
   
   return (
     <div className="space-y-8">
-      {/* Content */}
-      <div className={formSubmitted ? "animate-pulse" : ""}>
+      <StepIndicator
+        currentStep={currentStep}
+        totalSteps={totalSteps}
+      />
+      
+      <div className="mt-6">
         {children}
       </div>
       
-      {/* Navigation buttons */}
-      {!formSubmitted && (
-        <div className="flex justify-between pt-4">
-          <Button
-            type="button"
+      <div className="flex justify-between mt-8">
+        {currentStep > 1 ? (
+          <Button 
+            type="button" 
+            variant="outline" 
             onClick={onPrevStep}
-            disabled={currentStep === 1 || isLoading}
-            className="bg-transparent border border-lavender-400/30 text-white hover:bg-lavender-400/10"
+            disabled={isLoading}
+            className="bg-transparent border-white/20 text-white hover:bg-white/10"
           >
             Voltar
           </Button>
-          
-          <Button 
-            type={isLastStep ? "submit" : "button"}
-            onClick={isLastStep ? undefined : onNextStep}
-            disabled={isLoading}
-            className={isLastStep 
-              ? "bg-lavender-400 hover:bg-lavender-500 text-teal-900" 
-              : "bg-lavender-400/30 hover:bg-lavender-400/40 text-white"
-            }
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {isLastStep ? "Enviando..." : "Carregando..."}
-              </>
-            ) : (
-              isLastStep ? "Finalizar Cadastro" : "Próximo"
-            )}
-          </Button>
-        </div>
-      )}
+        ) : (
+          <div></div> // Espaço vazio para manter o layout alinhado
+        )}
+        
+        <Button 
+          type={isLastStep ? "submit" : "button"} 
+          onClick={isLastStep ? undefined : onNextStep}
+          disabled={isLoading}
+          className="bg-lavender-400 hover:bg-lavender-500 text-teal-900"
+        >
+          {isLoading ? (
+            "Processando..."
+          ) : isLastStep ? (
+            "Finalizar Cadastro"
+          ) : (
+            "Próximo"
+          )}
+        </Button>
+      </div>
     </div>
   );
 };

@@ -1,6 +1,6 @@
 
 import { ReactNode, useEffect, useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -19,6 +19,7 @@ const ProtectedRoute = ({
 }: ProtectedRouteProps) => {
   const { user, isLoading, userRole } = useAuth();
   const [checkingRole, setCheckingRole] = useState(allowedRoles.length > 0 && !userRole);
+  const location = useLocation();
 
   useEffect(() => {
     const fetchUserRole = async () => {
@@ -54,7 +55,9 @@ const ProtectedRoute = ({
     user: !!user, 
     userRole, 
     allowedRoles,
-    hasAccess: allowedRoles.length === 0 || allowedRoles.includes(userRole || '')
+    hasAccess: allowedRoles.length === 0 || allowedRoles.includes(userRole || ''),
+    currentPath: location.pathname,
+    redirectPath
   });
 
   // Se ainda está carregando o usuário ou verificando a role, mostra um spinner
@@ -64,7 +67,7 @@ const ProtectedRoute = ({
 
   // Se não estiver autenticado, redireciona para o login
   if (!user) {
-    return <Navigate to={redirectPath} />;
+    return <Navigate to={redirectPath} state={{ from: location.pathname }} />;
   }
 
   // Se houver roles específicas necessárias e o usuário não tiver uma delas, nega o acesso

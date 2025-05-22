@@ -39,14 +39,30 @@ function App() {
           <Route path="/register-terapeuta" element={<RegisterTerapeuta />} />
           <Route path="/register-cliente" element={<RegisterCliente />} />
           <Route path="/admin" element={
-            <ProtectedRoute allowedRoles={['admin']} redirectPath="/login-cliente">
+            <ProtectedRoute allowedRoles={['admin']} redirectPath="/login-terapeuta">
               <AdminPanel />
             </ProtectedRoute>
           } />
-          <Route path="/dashboard/terapeuta" element={<TherapistDashboard />} />
-          <Route path="/dashboard/cliente" element={<ClientDashboard />} />
-          <Route path="/dashboard-terapeuta" element={<TherapistDashboard />} />
-          <Route path="/dashboard-cliente" element={<ClientDashboard />} />
+          <Route path="/dashboard/terapeuta" element={
+            <ProtectedRoute allowedRoles={['terapeuta']}>
+              <TherapistDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/dashboard/cliente" element={
+            <ProtectedRoute allowedRoles={['cliente']}>
+              <ClientDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/dashboard-terapeuta" element={
+            <ProtectedRoute allowedRoles={['terapeuta']}>
+              <TherapistDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/dashboard-cliente" element={
+            <ProtectedRoute allowedRoles={['cliente']}>
+              <ClientDashboard />
+            </ProtectedRoute>
+          } />
           <Route path="/avaliacao" element={<StartAssessment />} />
           <Route path="/avaliacao/pergunta/:id" element={<Question />} />
           <Route path="/avaliacao/resultados" element={<Results />} />
