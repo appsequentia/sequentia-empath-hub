@@ -58,20 +58,24 @@ export const StepManager = ({
           <div></div> // Espaço vazio para manter o layout alinhado
         )}
         
-        <Button 
-          type={isLastStep ? "submit" : "button"} 
-          onClick={isLastStep ? onSubmit : onNextStep}
-          disabled={isLoading}
-          className="bg-lavender-400 hover:bg-lavender-500 text-teal-900"
-        >
-          {isLoading ? (
-            "Processando..."
-          ) : isLastStep ? (
-            "Finalizar Cadastro"
-          ) : (
-            "Próximo"
-          )}
-        </Button>
+        {isLastStep ? (
+          <Button 
+            type="submit"
+            disabled={isLoading}
+            className="bg-lavender-400 hover:bg-lavender-500 text-teal-900"
+          >
+            {isLoading ? "Processando..." : "Finalizar Cadastro"}
+          </Button>
+        ) : (
+          <Button 
+            type="button"
+            onClick={onNextStep}
+            disabled={isLoading}
+            className="bg-lavender-400 hover:bg-lavender-500 text-teal-900"
+          >
+            Próximo
+          </Button>
+        )}
       </div>
     </div>
   );

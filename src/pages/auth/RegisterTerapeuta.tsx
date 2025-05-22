@@ -116,6 +116,7 @@ export default function RegisterTerapeuta() {
     }
   }, [initBucket]);
   
+  // Modified to explicitly handle form submission
   const handleSubmit = form.handleSubmit(onSubmit);
   
   // Renderizar o conteúdo com base na etapa atual
@@ -162,7 +163,6 @@ export default function RegisterTerapeuta() {
                   isLoading={isLoading}
                   onPrevStep={prevStep}
                   onNextStep={nextStep}
-                  onSubmit={currentStep === totalSteps ? handleSubmit : undefined}
                 >
                   {renderStepContent()}
                 </StepManager>

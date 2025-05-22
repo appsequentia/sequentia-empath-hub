@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from "react";
 import { UseFormReturn } from "react-hook-form";
 import { supabase } from "@/integrations/supabase/client";
@@ -40,7 +39,7 @@ export const useTherapistRegistration = (form: UseFormReturn<TherapistForm>) => 
   const [isLoading, setIsLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [bucketReady, setBucketReady] = useState<boolean | null>(null);
-  const totalSteps = 2; // Alterado de 3 para 2
+  const totalSteps = 2;
   const { toast } = useToast();
   const navigate = useNavigate();
   
@@ -260,6 +259,21 @@ export const useTherapistRegistration = (form: UseFormReturn<TherapistForm>) => 
               });
             }
           }
+        }
+        
+        // 5. Create user profile in profiles table with role 'terapeuta'
+        const { error: userProfileError } = await supabase
+          .from('profiles')
+          .upsert({
+            id: userId,
+            first_name: data.firstName,
+            last_name: data.lastName,
+            role: 'terapeuta'
+          });
+          
+        if (userProfileError) {
+          console.error("Error creating user profile:", userProfileError);
+          // Continue despite error, not critical
         }
         
         // Success!
