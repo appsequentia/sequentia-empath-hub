@@ -3,17 +3,9 @@ import React, { createContext, useState, useContext, useEffect, ReactNode } from
 import { Session, User } from "@supabase/supabase-js";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-
-interface AuthContextType {
-  session: Session | null;
-  user: User | null;
-  isLoading: boolean;
-  userRole: string | null;
-  signIn: (email: string, password: string, userType?: string) => Promise<void>;
-  signUp: (email: string, password: string, firstName: string, lastName: string, userType?: string) => Promise<void>;
-  signOut: () => Promise<void>;
-}
+import { useAuthOperations } from "@/hooks/useAuthOperations";
+import { fetchUserRole, createOrUpdateUserProfile } from "@/utils/authUtils";
+import { AuthContextType } from "./AuthContextTypes";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -23,7 +15,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [userRole, setUserRole] = useState<string | null>(null);
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const { signIn: authSignIn, signUp: authSignUp, signOut: authSignOut } = useAuthOperations();
 
   useEffect(() => {
     // Configurar listener para mudanças de autenticação
@@ -37,7 +29,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Buscar role do usuário quando fizer login
           // Usamos setTimeout(0) para evitar deadlocks com outros eventos do Supabase
           setTimeout(() => {
-            fetchUserRole(currentSession.user.id);
+            handleUserRole(currentSession.user.id);
           }, 0);
         }
         
@@ -58,7 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(initialSession?.user ?? null);
         
         if (initialSession?.user) {
-          await fetchUserRole(initialSession.user.id);
+          await handleUserRole(initialSession.user.id);
         }
       } catch (error) {
         console.error("Erro ao buscar sessão:", error);
@@ -73,213 +65,60 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       subscription.unsubscribe();
     };
   }, [navigate]);
-  
-  // Função para buscar a role do usuário
-  const fetchUserRole = async (userId: string) => {
+
+  // Função para buscar ou criar a role do usuário e redirecionar adequadamente
+  const handleUserRole = async (userId: string) => {
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', userId)
-        .maybeSingle(); // Usar maybeSingle em vez de single para evitar erros quando não há resultados
-      
-      if (error && error.code !== 'PGRST116') {
-        console.error('Erro ao buscar role do usuário:', error);
-        setUserRole(null);
-      } else if (data) {
-        console.log("Role encontrada:", data.role);
-        setUserRole(data?.role || null);
+      setIsLoading(true);
+      let role = await fetchUserRole(userId);
+
+      // Se não tiver role, tentar criar um perfil com role padrão
+      if (!role) {
+        // Buscar informações do usuário para o nome
+        const { data: userData } = await supabase.auth.getUser();
+        const firstName = userData?.user?.user_metadata?.first_name || '';
+        const lastName = userData?.user?.user_metadata?.last_name || '';
         
-        // Redirecionar com base na role
-        if (data.role === 'admin') {
-          navigate('/admin');
-        } else if (data.role === 'terapeuta') {
-          navigate('/dashboard-terapeuta');
-        } else if (data.role === 'cliente') {
-          navigate('/dashboard-cliente');
-        }
-      } else {
-        // Se não encontrou um perfil, vamos criar um com role 'cliente' por padrão
-        console.log("Nenhum perfil encontrado para o usuário, criando perfil padrão");
-        try {
-          const { data: profileData, error: profileError } = await supabase
-            .from('profiles')
-            .insert([{ id: userId, role: 'cliente' }])
-            .select('role')
-            .single();
-            
-          if (profileError) {
-            console.error('Erro ao criar perfil do usuário:', profileError);
-            setUserRole('cliente'); // Assume cliente como padrão mesmo se falhar
-          } else {
-            console.log("Perfil criado com role:", profileData.role);
-            setUserRole(profileData.role);
-            navigate('/dashboard-cliente');
-          }
-        } catch (err) {
-          console.error('Erro ao criar perfil do usuário:', err);
-          setUserRole('cliente'); // Assume cliente como padrão mesmo se falhar
+        // Criar perfil com role cliente padrão
+        role = await createOrUpdateUserProfile(userId, 'cliente', firstName, lastName);
+        
+        // Se mesmo assim falhou, use o default
+        if (!role) {
+          role = 'cliente';
         }
       }
+      
+      console.log("Role encontrada ou criada:", role);
+      setUserRole(role);
+      
+      // Redirecionar com base na role
+      if (role === 'admin') {
+        navigate('/admin');
+      } else if (role === 'terapeuta') {
+        navigate('/dashboard-terapeuta');
+      } else if (role === 'cliente') {
+        navigate('/dashboard-cliente');
+      }
     } catch (err) {
-      console.error('Erro ao buscar role do usuário:', err);
-      setUserRole(null);
+      console.error('Erro ao gerenciar role do usuário:', err);
+      // Default to cliente if all else fails
+      setUserRole('cliente');
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Limpar estado de autenticação
-  const cleanupAuthState = () => {
-    // Remove standard auth tokens
-    localStorage.removeItem('supabase.auth.token');
-    // Remove all Supabase auth keys from localStorage
-    Object.keys(localStorage).forEach((key) => {
-      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
-        localStorage.removeItem(key);
-      }
-    });
-    
-    // Remove from sessionStorage if in use
-    Object.keys(sessionStorage || {}).forEach((key) => {
-      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
-        sessionStorage.removeItem(key);
-      }
-    });
-  };
-
+  // Wrapper functions to preserve the original API
   const signIn = async (email: string, password: string, userType?: string) => {
-    try {
-      // Limpar estado antes de fazer login
-      cleanupAuthState();
-      
-      // Tentativa de logout global
-      try {
-        await supabase.auth.signOut({ scope: 'global' });
-      } catch (err) {
-        // Continua mesmo que falhe
-      }
-
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      if (data.user) {
-        try {
-          console.log("Usuário logado:", data.user);
-          toast({
-            title: "Login realizado com sucesso",
-            description: "Bem-vindo(a) de volta!",
-          });
-          
-          // A função fetchUserRole será acionada pelo listener de onAuthStateChange
-          // Não fazemos o redirecionamento aqui para evitar conflitos
-        } catch (err) {
-          console.error("Erro ao verificar perfil:", err);
-        }
-      }
-    } catch (error: any) {
-      toast({
-        title: "Erro ao fazer login",
-        description: error.message || "Verifique suas credenciais e tente novamente.",
-        variant: "destructive",
-      });
-    }
+    await authSignIn(email, password, userType);
   };
 
   const signUp = async (email: string, password: string, firstName: string, lastName: string, userType?: string) => {
-    try {
-      // Limpar estado antes de fazer cadastro
-      cleanupAuthState();
-      
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            first_name: firstName,
-            last_name: lastName,
-            user_type: userType || 'cliente', // Armazena o tipo de usuário nos metadados
-          }
-        }
-      });
-
-      if (error) {
-        throw error;
-      }
-      
-      // Se o cadastro for bem sucedido, atualiza a role do usuário na tabela profiles
-      if (data.user) {
-        // Verificar se o perfil já existe
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('id', data.user.id)
-          .maybeSingle();
-          
-        if (profileError && profileError.code !== 'PGRST116') {
-          console.error('Erro ao verificar perfil:', profileError);
-        }
-        
-        // Se o perfil não existe, criar um novo
-        if (!profileData) {
-          await supabase
-            .from('profiles')
-            .insert([{ 
-              id: data.user.id, 
-              first_name: firstName,
-              last_name: lastName,
-              role: userType || 'cliente' 
-            }]);
-        } else {
-          // Se já existe, atualizar a role
-          await supabase
-            .from('profiles')
-            .update({ role: userType || 'cliente' })
-            .eq('id', data.user.id);
-        }
-      }
-
-      toast({
-        title: "Cadastro realizado com sucesso",
-        description: "Verifique seu e-mail para confirmar sua conta.",
-      });
-      
-      // Redirecionar para login
-      navigate(userType === 'terapeuta' ? '/login-terapeuta' : '/login-cliente');
-    } catch (error: any) {
-      toast({
-        title: "Erro ao fazer cadastro",
-        description: error.message || "Não foi possível completar o cadastro. Tente novamente.",
-        variant: "destructive",
-      });
-    }
+    await authSignUp(email, password, firstName, lastName, userType);
   };
 
   const signOut = async () => {
-    try {
-      cleanupAuthState();
-      await supabase.auth.signOut({ scope: 'global' });
-      
-      toast({
-        title: "Logout realizado com sucesso",
-        description: "Você saiu da sua conta.",
-      });
-      
-      // Força atualização da página para limpar qualquer estado
-      window.location.href = '/login-cliente';
-    } catch (error: any) {
-      toast({
-        title: "Erro ao fazer logout",
-        description: error.message || "Não foi possível sair da conta. Tente novamente.",
-        variant: "destructive",
-      });
-    }
+    await authSignOut();
   };
 
   const value = {
