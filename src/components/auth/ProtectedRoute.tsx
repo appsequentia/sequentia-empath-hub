@@ -23,7 +23,23 @@ const ProtectedRoute = ({
   useEffect(() => {
     const fetchUserRole = async () => {
       if (user && allowedRoles.length > 0 && !userRole) {
-        setCheckingRole(false);
+        try {
+          const { data: profileData, error } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .single();
+            
+          if (error) {
+            console.error('Error fetching user role:', error);
+          }
+          
+          // Role verification is now handled by AuthContext, so we just finish checking
+          setCheckingRole(false);
+        } catch (error) {
+          console.error('Error verifying user role:', error);
+          setCheckingRole(false);
+        }
       } else {
         setCheckingRole(false);
       }
