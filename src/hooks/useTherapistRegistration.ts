@@ -40,7 +40,7 @@ export const useTherapistRegistration = (form: UseFormReturn<TherapistForm>) => 
   const [isLoading, setIsLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [bucketReady, setBucketReady] = useState<boolean | null>(null);
-  const totalSteps = 3;
+  const totalSteps = 2; // Alterado de 3 para 2
   const { toast } = useToast();
   const navigate = useNavigate();
   
@@ -86,8 +86,6 @@ export const useTherapistRegistration = (form: UseFormReturn<TherapistForm>) => 
       if (!hasNoRegistration) {
         fieldsToValidate.push("registrationNumber");
       }
-    } else if (currentStep === 3) {
-      fieldsToValidate = ["profilePicture", "certificate", "idDocument", "termsAccepted"];
     }
     
     // Validate only fields for current step
@@ -106,44 +104,6 @@ export const useTherapistRegistration = (form: UseFormReturn<TherapistForm>) => 
   const prevStep = () => {
     setCurrentStep(prev => Math.max(prev - 1, 1));
     setFormError(null); // Clear error messages when going back
-  };
-  
-  // Upload a file to Supabase Storage
-  const uploadFile = async (file: File, userId: string, fileType: 'profile-pics' | 'certificates' | 'id-docs'): Promise<string | null> => {
-    if (!file) return null;
-    
-    try {
-      console.log(`Uploading ${fileType} file:`, file.name);
-      
-      // Create folder structure: fileType/userId/timestamp-filename
-      const timestamp = Date.now();
-      const fileExt = file.name.split('.').pop();
-      const filePath = `${userId}/${fileType}/${timestamp}.${fileExt}`;
-      
-      // Upload to Supabase Storage
-      const { error: uploadError, data } = await supabase.storage
-        .from('therapist_docs')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
-      
-      if (uploadError) {
-        console.error(`Error uploading ${fileType}:`, uploadError);
-        throw new Error(`Erro ao enviar ${file.name}: ${uploadError.message}`);
-      }
-      
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from('therapist_docs')
-        .getPublicUrl(filePath);
-      
-      console.log(`${fileType} upload successful:`, urlData.publicUrl);
-      return urlData.publicUrl;
-    } catch (error) {
-      console.error(`${fileType} upload error:`, error);
-      throw error;
-    }
   };
   
   // Check if therapist profile already exists
@@ -172,22 +132,7 @@ export const useTherapistRegistration = (form: UseFormReturn<TherapistForm>) => 
     try {
       console.log("Form submission started with data:", { ...data, password: "[REDACTED]" });
       
-      // Validate required files
-      if (!data.profilePicture) {
-        throw new Error("A foto de perfil é obrigatória");
-      }
-      
-      if (!data.certificate) {
-        throw new Error("O certificado de formação é obrigatório");
-      }
-      
-      if (!data.idDocument) {
-        throw new Error("O documento de identidade é obrigatório");
-      }
-      
-      if (!data.termsAccepted) {
-        throw new Error("Você precisa aceitar os termos de serviço");
-      }
+      // Não é mais necessário validar documentos obrigatórios
       
       console.log("Basic validation passed, proceeding with auth signup");
       
@@ -223,24 +168,6 @@ export const useTherapistRegistration = (form: UseFormReturn<TherapistForm>) => 
       console.log("User created successfully:", userId);
       
       try {
-        // Upload documents in parallel for better performance
-        const [profilePictureUrl, certificateUrl, idDocumentUrl] = await Promise.all([
-          // Upload profile picture
-          data.profilePicture instanceof File 
-            ? uploadFile(data.profilePicture, userId, 'profile-pics')
-            : Promise.resolve(null),
-            
-          // Upload certificate
-          data.certificate instanceof File 
-            ? uploadFile(data.certificate, userId, 'certificates')
-            : Promise.resolve(null),
-            
-          // Upload ID document
-          data.idDocument instanceof File 
-            ? uploadFile(data.idDocument, userId, 'id-docs')
-            : Promise.resolve(null)
-        ]);
-        
         // Check if therapist profile already exists
         const profileExists = await checkExistingProfile(userId);
         console.log("Profile exists:", profileExists);
@@ -253,11 +180,11 @@ export const useTherapistRegistration = (form: UseFormReturn<TherapistForm>) => 
           bio: data.biography,
           approach: data.approach || "", 
           price: parseInt(data.services[0]?.price) || parseInt(data.sessionPrice) || 0,
-          avatar: profilePictureUrl || "", 
+          avatar: "", // Avatar vazio, já que não há mais upload
           is_approved: false,
           specialty: data.specialties[0] || "",
-          certificate_url: certificateUrl || "",
-          id_document_url: idDocumentUrl || ""
+          certificate_url: "", // URL de certificado vazia
+          id_document_url: "" // URL de documento vazia
         };
         
         const { error: profileError } = profileExists 
@@ -349,9 +276,9 @@ export const useTherapistRegistration = (form: UseFormReturn<TherapistForm>) => 
           navigate('/login-terapeuta');
         }, 3000);
         
-      } catch (uploadError: any) {
-        console.error("Error in document processing:", uploadError);
-        throw new Error(`Erro ao processar documentos: ${uploadError.message}`);
+      } catch (error: any) {
+        console.error("Error in processing data:", error);
+        throw new Error(`Erro ao processar dados: ${error.message}`);
       }
       
     } catch (error: any) {

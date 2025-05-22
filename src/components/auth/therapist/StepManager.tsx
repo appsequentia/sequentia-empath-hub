@@ -11,6 +11,7 @@ interface StepManagerProps {
   isLoading: boolean;
   onPrevStep: () => void;
   onNextStep: () => void;
+  onSubmit?: () => void;
 }
 
 export const StepManager = ({
@@ -21,6 +22,7 @@ export const StepManager = ({
   isLoading,
   onPrevStep,
   onNextStep,
+  onSubmit,
 }: StepManagerProps) => {
   // Se o formulário foi enviado, não mostrar os controles de navegação
   if (formSubmitted) {
@@ -58,7 +60,7 @@ export const StepManager = ({
         
         <Button 
           type={isLastStep ? "submit" : "button"} 
-          onClick={isLastStep ? undefined : onNextStep}
+          onClick={isLastStep ? onSubmit : onNextStep}
           disabled={isLoading}
           className="bg-lavender-400 hover:bg-lavender-500 text-teal-900"
         >

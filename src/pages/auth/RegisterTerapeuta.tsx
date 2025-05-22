@@ -8,7 +8,6 @@ import { Footer } from "@/components/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import BasicInfoStep from "@/components/auth/therapist/BasicInfoStep";
 import ProfessionalProfileStep from "@/components/auth/therapist/ProfessionalProfileStep";
-import DocumentationStep from "@/components/auth/therapist/DocumentationStep";
 import SuccessMessage from "@/components/auth/therapist/SuccessMessage";
 import { FormAlerts } from "@/components/auth/therapist/FormAlerts";
 import { StepManager } from "@/components/auth/therapist/StepManager";
@@ -45,19 +44,11 @@ const registerSchema = z.object({
   sessionPrice: z.string().min(1, "Informe o valor da sessão"),
   sessionDuration: z.string().min(1, "Selecione a duração da sessão"),
   
-  // Etapa 3: Documentação
-  profilePicture: z.any().refine(val => !!val, {
-    message: "A foto de perfil é obrigatória"
-  }),
-  certificate: z.any().refine(val => !!val, {
-    message: "O certificado de formação é obrigatório"
-  }),
-  idDocument: z.any().refine(val => !!val, {
-    message: "O documento de identidade é obrigatório"
-  }),
-  termsAccepted: z.boolean().refine(val => val === true, {
-    message: "Você precisa aceitar os termos de serviço e política de privacidade"
-  }),
+  // Campos opcionais que serão definidos com valores padrão
+  profilePicture: z.any().optional(),
+  certificate: z.any().optional(),
+  idDocument: z.any().optional(),
+  termsAccepted: z.boolean().default(true)
 }).refine((data) => data.password === data.confirmPassword, {
   message: "As senhas não coincidem",
   path: ["confirmPassword"],
@@ -91,7 +82,7 @@ export default function RegisterTerapeuta() {
       services: [{ name: "", duration: "", price: "", description: "" }],
       sessionPrice: "",
       sessionDuration: "",
-      termsAccepted: false,
+      termsAccepted: true, // Definido como true por padrão
       profilePicture: null,
       certificate: null,
       idDocument: null
@@ -125,6 +116,8 @@ export default function RegisterTerapeuta() {
     }
   }, [initBucket]);
   
+  const handleSubmit = form.handleSubmit(onSubmit);
+  
   // Renderizar o conteúdo com base na etapa atual
   const renderStepContent = () => {
     if (formSubmitted) {
@@ -136,8 +129,6 @@ export default function RegisterTerapeuta() {
         return <BasicInfoStep form={form} />;
       case 2:
         return <ProfessionalProfileStep form={form} />;
-      case 3:
-        return <DocumentationStep form={form} />;
       default:
         return null;
     }
@@ -155,7 +146,7 @@ export default function RegisterTerapeuta() {
               </CardTitle>
               <CardDescription className="text-center text-white/70">
                 {!formSubmitted ? 
-                  `Etapa ${currentStep} de ${totalSteps}: ${currentStep === 1 ? 'Informações Básicas' : currentStep === 2 ? 'Perfil Profissional' : 'Documentação'}` : 
+                  `Etapa ${currentStep} de ${totalSteps}: ${currentStep === 1 ? 'Informações Básicas' : 'Perfil Profissional'}` : 
                   "Cadastro enviado com sucesso!"}
               </CardDescription>
             </CardHeader>
@@ -163,7 +154,7 @@ export default function RegisterTerapeuta() {
             <CardContent>
               <FormAlerts formError={formError} bucketReady={bucketReady} />
               
-              <form onSubmit={form.handleSubmit(onSubmit)}>
+              <form onSubmit={handleSubmit}>
                 <StepManager
                   currentStep={currentStep}
                   totalSteps={totalSteps}
@@ -171,6 +162,7 @@ export default function RegisterTerapeuta() {
                   isLoading={isLoading}
                   onPrevStep={prevStep}
                   onNextStep={nextStep}
+                  onSubmit={currentStep === totalSteps ? handleSubmit : undefined}
                 >
                   {renderStepContent()}
                 </StepManager>
